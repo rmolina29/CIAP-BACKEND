@@ -15,7 +15,7 @@ export class RestablecimientoContrasenaController {
         try {
             const obtener_email: Array<any> = await this.serviceContrasena.email_usuario_existe(mail);
 
-            const email = obtener_email.length > 0
+            const usuario = obtener_email.length > 0
 
                 ? { 'verificacion_email': [{ permiso: true, status: 200, mensaje: 'autorizado' }] }
                 : {
@@ -27,9 +27,9 @@ export class RestablecimientoContrasenaController {
                 };
 
             // estado de la solicitud
-            const estado = email.verificacion_email[0].status;
+            const estado = usuario.verificacion_email[0].status;
             
-            res.status(estado).json(email);
+            res.status(estado).json(usuario);
         } catch (error) {
             console.error('Error executing query:', error);
             res.status(500).json({ mensaje: 'Error executing query' });
@@ -41,7 +41,6 @@ export class RestablecimientoContrasenaController {
     async tokenVerificacion(@Body() mail:email, @Res() res:Response):Promise<void>{
         try {
 
-            const obtener_email: Array<any> = await this.serviceContrasena.email_usuario_existe(mail);
             
         } catch (error) {
             console.error('Error executing query:', error);

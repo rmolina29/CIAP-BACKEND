@@ -30,4 +30,8 @@ export class RestablecimientoContrasenaService implements OnModuleInit{
 
 
     }
+
+    async insert_token(){
+        
+    }
 }
