@@ -15,8 +15,9 @@ export interface RespuestaDataUsuario {
     id_ua: number;
     nombre_usuario: string;
     id_rol_usuario: number;
-    id_udp: number;
+    nombre_rol:string;
     nombres: string;
-    id_urc: number;
+    apellidos:string;
+    mail:string;
     estado_contrasena: string;
   }
