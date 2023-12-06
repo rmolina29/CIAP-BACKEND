@@ -15,16 +15,19 @@ export class LoginService implements OnModuleInit {
     }
 
     private transformAuthLoginData(usuario: any) {
-        const datosTransformados = usuario.map((item: RespuestaDataUsuario) => ({
+
+        const datosTransformados = usuario.map((item: RespuestaDataUsuario ) => (
+        {
             id_ua: item.id_ua,
-            nombre_usuario: item.nombre_usuario,
-            id_rol_usuario: item.id_rol_usuario,
-            id_udp: item.id_udp,
             nombres: item.nombres,
-            id_urc: item.id_urc,
+            nombre_usuario: item.nombre_usuario,
+            apellidos_usuario: item.apellidos,
+            id_rol_usuario: item.id_rol_usuario,
+            nombre_rol: item.nombre_rol,
             estado_contrasena: item.estado_contrasena.toString(),
         }));
-
+        // let result_data = Object.assign(datosTransformados[0])
+        
         return datosTransformados
     }
 
@@ -40,10 +43,11 @@ export class LoginService implements OnModuleInit {
         correo = correo.trim();
         contrasena = contrasena.trim();
 
-        let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario, udp.id as id_udp, udp.nombres ,udp.apellidos,urc.id as id_urc,urc.estado as estado_contrasena
+        let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario,ur.tipo as nombre_rol, udp.nombres ,udp.apellidos,udp.correo,urc.estado as estado_contrasena
         FROM usuario_auth ua 
         JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
         JOIN usuario_reg_contrasena urc ON ua.id = urc.id_usuario
+        JOIN usuario_rol ur ON ua.id_rol = ur.id 
         WHERE (udp.correo = '${correo}' or ua.nombre_usuario = '${nombre_usuario}') and urc.contrasena = '${contrasena}'`;
 
         let resultado_login_auth = await this.conexion.query(sql);

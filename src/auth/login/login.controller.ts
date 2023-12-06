@@ -14,16 +14,20 @@ export class LoginController {
 
         try {
             const data_auth_usuario: Array<RespuestaDataUsuario> = await this.serviceDatabase.auth_login(usuario);
+            const data_object_usuario = data_auth_usuario[0]
 
             const respuesta_auth = data_auth_usuario.length > 0
 
-                ? { 'usuario': [{ 'data': data_auth_usuario }, { 'status': 200, 'mensaje': 'autorizado' }] }
+                ? {
+                    'data': data_object_usuario ,
+                    'response': { 'status': 200, 'mensaje': 'autorizado' }
+                }
                 : {
-                    'usuario': [{
+                    'response': {
                         login: false,
                         status: 401,
                         mensaje: 'no autorizado'
-                    }]
+                    }
                 };
 
             res.json(respuesta_auth);
