@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { LoginService } from './login.service';
-import { Usuario, RespuestaDataUsuario } from './interfaces_auth/usuario_auth_login.interface';
+import { Usuario, RespuestaDataUsuario, DataLogin } from './interfaces_auth/usuario_auth_login.interface';
 
 @Controller('/auth/login')
 export class LoginController {
@@ -10,7 +10,7 @@ export class LoginController {
     }
 
     @Post()
-    async auth(@Body() usuario: Usuario, @Res() res: Response): Promise<void> {
+    async auth(@Body() usuario: DataLogin, @Res() res: Response): Promise<void> {
 
         try {
             const data_auth_usuario: Array<RespuestaDataUsuario> = await this.serviceDatabase.auth_login(usuario);

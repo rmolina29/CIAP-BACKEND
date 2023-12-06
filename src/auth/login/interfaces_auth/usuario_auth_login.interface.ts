@@ -5,6 +5,12 @@ export interface Usuario {
     contrasena: string
 }
 
+export interface DataLogin {
+    user: string;
+    pass: string;
+    mail: string;
+}
+
 export interface RespuestaDataUsuario {
     id_ua: number;
     nombre_usuario: string;

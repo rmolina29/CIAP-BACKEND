@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { RespuestaDataUsuario, Usuario } from './interfaces_auth/usuario_auth_login.interface';
+import { DataLogin, RespuestaDataUsuario, Usuario } from './interfaces_auth/usuario_auth_login.interface';
 
 @Injectable()
 export class LoginService {
@@ -23,14 +23,14 @@ export class LoginService {
         return datosTransformados
     }
 
-    async auth_login(usuario: Usuario): Promise<any> {
+    async auth_login(usuario: DataLogin): Promise<any> {
 
         await this.dbConexionServicio.connectToDatabase();
         const conexion = this.dbConexionServicio.getConnection()
 
-        let nombre_usuario = usuario.nombre_usuario ?? '';
-        let correo = usuario.correo ?? '';
-        let contrasena = usuario.contrasena ?? '';
+        let nombre_usuario = usuario.user ?? '';
+        let correo = usuario.mail ?? '';
+        let contrasena = usuario.pass ?? '';
 
         nombre_usuario = nombre_usuario.trim();
         correo = correo.trim();
