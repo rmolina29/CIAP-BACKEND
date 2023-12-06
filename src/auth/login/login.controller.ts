@@ -20,12 +20,12 @@ export class LoginController {
 
                 ? {
                     'data': data_object_usuario ,
-                    'response': { 'status': 200, 'mensaje': 'autorizado' }
+                    'response': { 'status': 'ok', 'mensaje': 'autorizado' }
                 }
                 : {
                     'response': {
                         login: false,
-                        status: 401,
+                        status: 'err',
                         mensaje: 'no autorizado'
                     }
                 };

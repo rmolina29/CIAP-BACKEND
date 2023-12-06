@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Patch, Post, Res } from '@nestjs/common';
 import { RestablecimientoContrasenaService } from './restablecimiento_contrasena.service';
-import { email } from './restablecimiento_contra.interface.ts/verificacion_correo.interface';
+import { email, tokenUsuario } from './restablecimiento_contra.interface.ts/verificacion_correo.interface';
 import { Response } from 'express';
 
 
@@ -17,17 +17,17 @@ export class RestablecimientoContrasenaController {
 
             const usuario = obtener_email.length > 0
 
-                ? { 'verificacion_email': [{ permiso: true, status: 200, mensaje: 'autorizado' }] }
+                ? { 'response': { permiso: true, status: 200, mensaje: 'autorizado' } }
                 : {
-                    'verificacion_email': [{
+                    'response': {
                         permiso: false,
                         status: 403,
                         mensaje: 'email incorrecto, no autorizado'
-                    }]
+                    }
                 };
 
             // estado de la solicitud
-            const estado = usuario.verificacion_email[0].status;
+            const estado = usuario.response.status;
             
             res.status(estado).json(usuario);
         } catch (error) {
@@ -38,8 +38,12 @@ export class RestablecimientoContrasenaController {
     }
 
     @Post('/olvidar_contrasena')
-    async tokenVerificacion(@Body() mail:email, @Res() res:Response):Promise<void>{
+    async olvidarContrasena(@Body() usuario_valido:tokenUsuario, @Res() res:Response):Promise<void>{
         try {
+            // esto me retorna el token de 4 digitos
+            const claveToken:number = await this.serviceContrasena.generar_token(usuario_valido.id)
+
+            //aqui se envia el correo electronico al usuario con el token generado
 
             
         } catch (error) {

@@ -23,6 +23,14 @@ export class DatabaseService {
         return this.connection;
     }
 
+    async closeConnection(){
+        if(this.connection){
+            await this.connection.end()
+            this.connection = null;
+        }
+    }
+
+
 }
 
 
