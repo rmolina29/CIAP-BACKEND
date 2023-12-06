@@ -6,7 +6,6 @@ export interface Usuario {
 }
 
 export interface RespuestaDataUsuario {
-    map(arg0: (item: any) => { id_ua: any; nombre_usuario: any; id_rol_usuario: any; id_udp: any; nombres: any; id_urc: any; estado_contrasena: any; }): unknown;
     id_ua: number;
     nombre_usuario: string;
     id_rol_usuario: number;

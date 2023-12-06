@@ -17,7 +17,7 @@ export class LoginController {
 
             const respuesta_auth = data_auth_usuario.length > 0
 
-                ? { 'usuario': data_auth_usuario,'respuesta': { 'status': 200, 'mensaje': 'autorizado' } }
+                ? { 'usuario': [{ 'data': data_auth_usuario }, { 'status': 200, 'mensaje': 'autorizado' }] }
                 : {
                     'usuario': [{
                         login: false,
