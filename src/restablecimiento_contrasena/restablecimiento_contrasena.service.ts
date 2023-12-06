@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { Connection } from 'mariadb';
-import { Verificacion_email } from './restablecimiento_contra.interface.ts/verificacion_correo.interface';
+import {  email } from './restablecimiento_contra.interface.ts/verificacion_correo.interface';
 
 @Injectable()
 export class RestablecimientoContrasenaService implements OnModuleInit{
@@ -15,7 +15,7 @@ export class RestablecimientoContrasenaService implements OnModuleInit{
        this.conexion = await this.dbConexionServicio.connectToDatabase()
     }
 
-    async email_usuario_existe(verificacion:Verificacion_email):Promise<any> {
+    async email_usuario_existe(verificacion:email):Promise<any> {
         this.conexion = this.dbConexionServicio.getConnection()
 
         let mail = verificacion.mail ?? ''

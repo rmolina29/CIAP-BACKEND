@@ -1,21 +1,21 @@
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Res } from '@nestjs/common';
 import { RestablecimientoContrasenaService } from './restablecimiento_contrasena.service';
-import { Verificacion_email } from './restablecimiento_contra.interface.ts/verificacion_correo.interface';
+import { email } from './restablecimiento_contra.interface.ts/verificacion_correo.interface';
 import { Response } from 'express';
 
 
-@Controller('auth/email_verificacion')
+@Controller('/auth')
 export class RestablecimientoContrasenaController {
 
 
     constructor(private readonly serviceContrasena: RestablecimientoContrasenaService) {}
 
-    @Post()
-    async verificar_email(@Body() mail: Verificacion_email, @Res() res: Response): Promise<void> {
+    @Post('/email_verificacion')
+    async verificarEmail(@Body() mail: email, @Res() res: Response): Promise<void> {
         try {
-            const data: Array<any> = await this.serviceContrasena.email_usuario_existe(mail);
+            const obtener_email: Array<any> = await this.serviceContrasena.email_usuario_existe(mail);
 
-            const email = data.length > 0
+            const email = obtener_email.length > 0
 
                 ? { 'verificacion_email': [{ permiso: true, status: 200, mensaje: 'autorizado' }] }
                 : {
@@ -34,6 +34,18 @@ export class RestablecimientoContrasenaController {
             console.error('Error executing query:', error);
             res.status(500).json({ mensaje: 'Error executing query' });
 
+        }
+    }
+
+    @Post('/olvidar_contrasena')
+    async tokenVerificacion(@Body() mail:email, @Res() res:Response):Promise<void>{
+        try {
+
+            const obtener_email: Array<any> = await this.serviceContrasena.email_usuario_existe(mail);
+            
+        } catch (error) {
+            console.error('Error executing query:', error);
+            res.status(500).json({ mensaje: 'Error executing query' });
         }
     }
 

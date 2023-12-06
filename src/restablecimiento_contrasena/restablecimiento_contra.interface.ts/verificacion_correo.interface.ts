@@ -1,3 +1,3 @@
-export interface Verificacion_email {
+export interface email {
     mail: string,
 }
