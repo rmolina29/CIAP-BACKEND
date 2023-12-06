@@ -6,7 +6,7 @@ export class DatabaseService {
 
     private connection: Connection
 
-    async connectToDatabase(): Promise<void> {
+    async connectToDatabase(): Promise<any> {
         if (!this.connection) {
             this.connection = await createConnection({
                 host: process.env.DB_HOST,

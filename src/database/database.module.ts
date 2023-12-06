@@ -3,7 +3,6 @@ import { DatabaseService } from './database.service';
 import { createConnection } from 'mariadb';
 
 @Module({
-
   providers: [DatabaseService]
 })
 export class DatabaseModule {

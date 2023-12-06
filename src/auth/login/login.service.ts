@@ -1,16 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { DataLogin, RespuestaDataUsuario, Usuario } from './interfaces_auth/usuario_auth_login.interface';
+import { DataLogin, RespuestaDataUsuario } from './interfaces_auth/usuario_auth_login.interface';
+import { Connection } from 'mariadb';
 
 @Injectable()
-export class LoginService {
+export class LoginService implements OnModuleInit {
 
-
+    private conexion: Connection;
     constructor(private readonly dbConexionServicio: DatabaseService) {
     }
 
+    async onModuleInit() {
+        await this.dbConexionServicio.connectToDatabase();
+    }
+
     private transformAuthLoginData(usuario: any) {
-        const datosTransformados = usuario.map((item: RespuestaDataUsuario ) => ({
+        const datosTransformados = usuario.map((item: RespuestaDataUsuario) => ({
             id_ua: item.id_ua,
             nombre_usuario: item.nombre_usuario,
             id_rol_usuario: item.id_rol_usuario,
@@ -25,8 +30,7 @@ export class LoginService {
 
     async auth_login(usuario: DataLogin): Promise<any> {
 
-        await this.dbConexionServicio.connectToDatabase();
-        const conexion = this.dbConexionServicio.getConnection()
+        this.conexion = this.dbConexionServicio.getConnection()
 
         let nombre_usuario = usuario.user ?? '';
         let correo = usuario.mail ?? '';
@@ -42,7 +46,7 @@ export class LoginService {
         JOIN usuario_reg_contrasena urc ON ua.id = urc.id_usuario
         WHERE (udp.correo = '${correo}' or ua.nombre_usuario = '${nombre_usuario}') and urc.contrasena = '${contrasena}'`;
 
-        let resultado_login_auth = await conexion.query(sql);
+        let resultado_login_auth = await this.conexion.query(sql);
         return this.transformAuthLoginData(resultado_login_auth);
     }
 
