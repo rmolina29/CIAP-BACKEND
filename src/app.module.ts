@@ -4,9 +4,10 @@ import { AppService } from './app.service';
 import { RestablecimientoContrasenaModule } from './restablecimiento_contrasena/restablecimiento_contrasena.module';
 import { DatabaseModule } from './database/database.module';
 import { LoginModule } from './auth/login/login.module';
+import { EnvioCorreosModule } from './restablecimiento_contrasena/envio_correos/envio_correos.module';
 
 @Module({
-  imports: [RestablecimientoContrasenaModule, DatabaseModule, LoginModule],
+  imports: [RestablecimientoContrasenaModule, DatabaseModule, LoginModule, EnvioCorreosModule],
   controllers: [AppController],
   providers: [AppService],
 })
