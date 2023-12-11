@@ -152,6 +152,7 @@ export class EnvioCorreosService {
                         z-index: -1;
                     }
                 </style>
+                
                 <script>
                     var code = ${datosToken.clave};
                     let fechaExpiracion; // Se inicializará con la fecha proporcionada

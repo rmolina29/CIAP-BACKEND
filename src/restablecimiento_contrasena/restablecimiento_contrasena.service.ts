@@ -50,7 +50,7 @@ export class RestablecimientoContrasenaService {
         let clave = Math.floor(Math.random() * 9000) + 1000;
         return clave
     }
-
+    // revisar
     async generar_token(id_usuario: number): Promise<object> {
         let res: Response
 
@@ -61,7 +61,7 @@ export class RestablecimientoContrasenaService {
             var token = this.token_random()
             // obtengo la fecha y les quito los espacios
             var fecha_expiracion = this.fecha_expiracion_token().trim()
-
+            
             let sql = `INSERT into usuario_token (id_usuario,token,fecha_expiracion) VALUES ('${id_usuario}','${token}','${fecha_expiracion}')`;
 
             // tener presente el await
