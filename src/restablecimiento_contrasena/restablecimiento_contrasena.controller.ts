@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { RestablecimientoContrasenaService } from './restablecimiento_contrasena.service';
-import { email, tokenUsuario } from './restablecimiento_contra.interface/verificacion_correo.interface';
+import { ContrasenaUsuario, email, tokenValidacion } from './restablecimiento_contra.interface/verificacion_correo.interface';
 import { Response } from 'express';
 import { EnvioCorreosService } from './envio_correos/envio_correos.service'
 import { Email } from './envio_correos/email.interface/email.interface';
@@ -43,9 +43,9 @@ export class RestablecimientoContrasenaController {
     async olvidarContrasena(@Body() usuario_valido: Email, @Res() res: Response): Promise<void> {
         try {
             // esto me retorna el token de 4 digitos y la fecha de expiracion del token
-            const datosToken:Object = await this.serviceContrasena.generar_token(usuario_valido.id_usuario);
+            const datosToken: Object = await this.serviceContrasena.generar_token(usuario_valido.id_usuario);
             //aqui se envia el correo electronico al usuario con el token generado
-            const enviar_correo = await this.servicioCorreo.envio_correo(usuario_valido,datosToken);
+            const enviar_correo = await this.servicioCorreo.envio_correo(usuario_valido, datosToken);
 
             res.json(enviar_correo);
 
@@ -56,23 +56,25 @@ export class RestablecimientoContrasenaController {
     }
 
     // en este endpoint lo que se hara es validar que el token no se encuentre en estado 
-    @Get('/validaToken')
-    async validarToken(@Body() body: any, @Res() res: Response) {
+    @Post('/validaToken')
+    async validarToken(@Body() body: tokenValidacion, @Res() res: Response) {
         try {
             let servicioToken = this.serviceContrasena
-            // se obtiene la id con idUsuario y se va al servicio para consultar el ultimo token del usuario
-            let idUsuario = body.idUsuario
             // selecciona el ultimo token que genero el usuario y verifica si el token esta expirado o no
-            const usuarioToken = await servicioToken.validarEsatdoToken(idUsuario);
-            
-            const estadoToken = usuarioToken[0].estado
-            
-            // se valida 
-            const verificacion = estadoToken == 0 ?
-                { status: 'no', mensaje: 'token expirado' } :
-                this.serviceContrasena.estadoVerificado(idUsuario)
+            const usuarioToken = await servicioToken.validarEsatdoToken(body);
 
-            res.json(verificacion);
+            //TENIENDO EN CUENTA QUE SE ENVIA EL ID DEL USUARIO 
+            const response = usuarioToken.length === 0
+                // si no se recibe informacion del query el token es invalido
+                ? res.json({ status: 'no', mensaje: 'el token es inválido' })
+                //sino se revisa el estado en el que lleva el token 
+                : usuarioToken[0].estado === 0
+                    // si se encuentra en 0 esta en estado de expiracion
+                    ? res.json({ status: 'no', mensaje: 'token expirado' })
+                    // sino tiene autorizacion al cambio de contraseña
+                    : res.json({ status: 'ok', mensaje: 'Autorizado' });
+
+            res.json(response);
 
         } catch (error) {
             console.error('Error executing query:', error);
@@ -80,6 +82,37 @@ export class RestablecimientoContrasenaController {
         }
 
 
+    }
+
+    //endpoint para validar el historial de la contraseña no sea igual 
+    @Post('/cambio_contrasena')
+    async cambioContrasena(@Body() requestContra: ContrasenaUsuario, @Res() res: Response) {
+        try {
+
+            //logica de cambio de contrasena
+
+            // 1) validamos que la contraseña no se encuentre en su historial de registradas, si es asi le devolveremos que debe asignar una contraseña diferente 
+            //2) Se actualizara el estado de la ultima contraseña del estado 1. Activa al estado 2. Desactivada 
+            //3) ya validada la contraseña se hara la insercion de la nueva contraseña con el id del usuario y la nueva contraseña
+
+            const contrasenaExiste = await this.serviceContrasena.HistorialContrasenaExiste(requestContra)
+
+            const response = contrasenaExiste
+
+                ? { status: 'no', mensaje: 'La contraseña ya se encuentra registrada. Por favor, elija una contraseña diferente.' }
+                : (
+                    await this.serviceContrasena. actualizacionEstadoContasena(requestContra.id),
+                    await this.serviceContrasena.registroNuevaContrasena(requestContra),
+                    { status: 'ok', mensaje: 'Contraseña registrada exitosamente.' }
+                );
+
+
+            res.json(response);
+
+        } catch (error) {
+            console.error('Error executing query:', error);
+            res.status(500).json({ mensaje: 'Error executing query' });
+        }
     }
 
 }

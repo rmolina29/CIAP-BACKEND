@@ -1,7 +1,7 @@
-import { Injectable, OnModuleInit, Res } from '@nestjs/common';
+import { Injectable, Res } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { Connection } from 'mariadb';
-import { email } from './restablecimiento_contra.interface/verificacion_correo.interface';
+import { email, ContrasenaUsuario, tokenValidacion } from './restablecimiento_contra.interface/verificacion_correo.interface';
 import * as moment from 'moment-timezone';
 import { Response } from 'express';
 
@@ -61,13 +61,13 @@ export class RestablecimientoContrasenaService {
             var token = this.token_random()
             // obtengo la fecha y les quito los espacios
             var fecha_expiracion = this.fecha_expiracion_token().trim()
-            
+
             let sql = `INSERT into usuario_token (id_usuario,token,fecha_expiracion) VALUES ('${id_usuario}','${token}','${fecha_expiracion}')`;
 
             // tener presente el await
             await this.conexion.query(sql)
 
-            return {'clave':token,'fecha':fecha_expiracion}
+            return { 'clave': token, 'fecha': fecha_expiracion }
 
         } catch (error) {
             console.error('Error executing query:', error);
@@ -76,13 +76,13 @@ export class RestablecimientoContrasenaService {
 
     }
 
-    async validarEsatdoToken(idUsuario: number) {
+    async validarEsatdoToken(usuarioValidacionToken: tokenValidacion) {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
 
             let sql = `
-            SELECT id,estado FROM usuario_token WHERE id_usuario = '${idUsuario}'
+            SELECT id,estado FROM usuario_token WHERE id_usuario = '${usuarioValidacionToken.idUsuario}' and token = '${usuarioValidacionToken.tokenUsuario}'
             ORDER BY estado DESC LIMIT 1;`;
 
             let usuarioVerificacionToken = await this.conexion.query(sql);
@@ -94,8 +94,6 @@ export class RestablecimientoContrasenaService {
         }
 
     }
-
-
 
     async estadoVerificado(id_usuario: number) {
         this.conexion = this.dbConexionServicio.getConnection();
@@ -110,8 +108,81 @@ export class RestablecimientoContrasenaService {
         await this.conexion.query(sql);
 
         return {
-            estado: 'actualizado',
-            token: 'ok'
+            mensaje: 'actualizado',
+            status: 'ok'
+        }
+
+    }
+
+    // se realizara una consulta el cual con el id del usuario y la contraseña si existe en la bd algun registro
+    async HistorialContrasenaExiste(verificacion: ContrasenaUsuario): Promise<Boolean> {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            let contrasena = verificacion.contrasena ?? '';
+
+            contrasena = contrasena.trim();
+
+            let sql = `
+                SELECT COUNT(*) AS count FROM usuario_reg_contrasena
+                WHERE id_usuario =  '${verificacion.id}' AND contrasena  = '${contrasena}'`;
+
+            let verificacionContrasena = await this.conexion.query(sql);
+
+            return verificacionContrasena[0].count > 0;
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error('error de servidor');
+        } finally {
+            await this.dbConexionServicio.closeConnection();
+        }
+
+    }
+
+    async actualizacionEstadoContasena(idUsuario: number): Promise<any> {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+            
+            let sql = `
+                    UPDATE usuario_reg_contrasena 
+                    SET estado = 0
+                    WHERE id_usuario = '${idUsuario}'
+                    ORDER BY fechasistema DESC 
+                    LIMIT 1;
+            `;
+
+            await this.conexion.query(sql);
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error('error de servidor');
+        } finally {
+            await this.dbConexionServicio.closeConnection();
+        }
+
+    }
+
+    async registroNuevaContrasena(contrasena: ContrasenaUsuario): Promise<any> {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            let idUsuario = contrasena.id;
+            let nuevContrasena = contrasena.contrasena;
+
+            let sql = ` 
+                INSERT INTO usuario_reg_contrasena (id_usuario, contrasena) VALUES ('${idUsuario}', '${nuevContrasena}');
+            `;
+            await this.conexion.query(sql);
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error('error de servidor');
+        } finally {
+            await this.dbConexionServicio.closeConnection();
         }
 
     }
