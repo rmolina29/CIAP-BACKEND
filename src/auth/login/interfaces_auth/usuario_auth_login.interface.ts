@@ -10,6 +10,10 @@ export interface DataLogin {
     pass: string;
     mail: string;
 }
+export interface DataVerificacionUsuario {
+    user?: string;
+    mail?: string;
+}
 
 export interface RespuestaDataUsuario {
     id_ua: number;
@@ -18,6 +22,7 @@ export interface RespuestaDataUsuario {
     nombre_rol:string;
     nombres: string;
     apellidos:string;
+    estado_bloqueo:number;
     mail:string;
     estado_contrasena: string;
   }

@@ -1,7 +1,7 @@
 import { Injectable, Res } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { Connection } from 'mariadb';
-import { email, ContrasenaUsuario, tokenValidacion } from './restablecimiento_contra.interface/verificacion_correo.interface';
+import { email, ContrasenaUsuario, tokenValidacion, DatosToken } from './restablecimiento_contra.interface/verificacion_correo.interface';
 import * as moment from 'moment-timezone';
 import { Response } from 'express';
 
@@ -51,11 +51,12 @@ export class RestablecimientoContrasenaService {
         return clave
     }
     // revisar
-    async generar_token(id_usuario: number): Promise<object> {
+    async generar_token(id_usuario: number): Promise<DatosToken> {
         let res: Response
 
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
+
             this.conexion = this.dbConexionServicio.getConnection();
 
             var token = this.token_random()
@@ -67,7 +68,9 @@ export class RestablecimientoContrasenaService {
             // tener presente el await
             await this.conexion.query(sql)
 
-            return { 'clave': token, 'fecha': fecha_expiracion }
+            let datosToken: DatosToken = { 'clave': token, 'fechaExpiracion': fecha_expiracion }
+
+            return datosToken
 
         } catch (error) {
             console.error('Error executing query:', error);
@@ -122,7 +125,7 @@ export class RestablecimientoContrasenaService {
 
             let sql = `
                 SELECT COUNT(*) AS count FROM usuario_reg_contrasena
-                WHERE id_usuario =  '${verificacion.id}' AND contrasena  = '${contrasena}'`;
+                WHERE id_usuario =  '${verificacion.idUsuario}' AND contrasena  = '${contrasena}'`;
 
             let verificacionContrasena = await this.conexion.query(sql);
 
@@ -141,7 +144,7 @@ export class RestablecimientoContrasenaService {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
-            
+
             let sql = `
                     UPDATE usuario_reg_contrasena 
                     SET estado = 0
@@ -166,7 +169,7 @@ export class RestablecimientoContrasenaService {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
 
-            let idUsuario = contrasena.id;
+            let idUsuario = contrasena.idUsuario;
             let nuevContrasena = contrasena.contrasena;
 
             let sql = ` 

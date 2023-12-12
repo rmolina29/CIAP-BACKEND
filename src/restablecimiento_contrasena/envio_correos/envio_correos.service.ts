@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { Email } from './email.interface/email.interface';
 import { Response } from 'express';
-import * as htmlToText from 'nodemailer-html-to-text';
-import { createReadStream } from 'fs';
+import { DatosToken } from '../restablecimiento_contra.interface/verificacion_correo.interface';
 
 @Injectable()
 export class EnvioCorreosService {
@@ -22,12 +21,11 @@ export class EnvioCorreosService {
         })
     }
     // colocar privado
-    envio_correo(usuarioEnvio: Email, datosToken: any) {
+    async envio_correo(usuarioEnvio: Email, datosToken: DatosToken) {
+
         let res: Response;
         // Lee el contenido HTML del archivo
         try {
-            // convierte el html en texto
-            this.transportador.use('compile', htmlToText());
 
             let body = {
                 from: process.env.MAIL_USER, // Remitente
@@ -280,7 +278,7 @@ export class EnvioCorreosService {
                                     </div>
                                     <div class="col">
                                         <!-- pon aqui la fecha de expiración -->
-                                        <input type="hidden" id="inputFecha" value="${datosToken.fecha}">
+                                        <input type="hidden" id="inputFecha" value="${datosToken.fechaExpiracion}">
                                     </div>
                                 </div>
                             </div>
@@ -298,14 +296,7 @@ export class EnvioCorreosService {
                     </body>
             
                     </html>`,
-                attachments: [
-                    {
-                        filename: 'correoEventos.js',
-                        content: createReadStream('src\restablecimiento_contrasena\envio_correos\javascript\correoEventos.js'),
-                        encoding: 'utf-8',
-                        cid: 'correoEventos.js'
-                    }
-                ]
+
             };
 
             this.transportador.sendMail(body);

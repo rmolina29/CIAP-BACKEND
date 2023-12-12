@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
 import { RestablecimientoContrasenaService } from './restablecimiento_contrasena.service';
-import { ContrasenaUsuario, email, tokenValidacion } from './restablecimiento_contra.interface/verificacion_correo.interface';
+import { ContrasenaUsuario, DatosToken, email, tokenValidacion } from './restablecimiento_contra.interface/verificacion_correo.interface';
 import { Response } from 'express';
 import { EnvioCorreosService } from './envio_correos/envio_correos.service'
 import { Email } from './envio_correos/email.interface/email.interface';
@@ -43,11 +43,11 @@ export class RestablecimientoContrasenaController {
     async olvidarContrasena(@Body() usuario_valido: Email, @Res() res: Response): Promise<void> {
         try {
             // esto me retorna el token de 4 digitos y la fecha de expiracion del token
-            const datosToken: Object = await this.serviceContrasena.generar_token(usuario_valido.id_usuario);
+            const datosToken: DatosToken = await this.serviceContrasena.generar_token(usuario_valido.id_usuario);
             //aqui se envia el correo electronico al usuario con el token generado
-            this.servicioCorreo.envio_correo(usuario_valido, datosToken);
+            await this.servicioCorreo.envio_correo(usuario_valido, datosToken);
 
-            res.json({ status: 'ok', mensaje: 'correo enviado correctamente' });
+            res.status(HttpStatus.OK).json({ mensaje: 'Correo enviado con éxito' });
 
         } catch (error) {
             console.error('Error executing query:', error);
@@ -106,7 +106,7 @@ export class RestablecimientoContrasenaController {
 
                 ? { status: 'no', mensaje: 'La contraseña ya se encuentra registrada. Por favor, elija una contraseña diferente.' }
                 : (
-                    await this.serviceContrasena.actualizacionEstadoContasena(requestContra.id),
+                    await this.serviceContrasena.actualizacionEstadoContasena(requestContra.idUsuario),
                     await this.serviceContrasena.registroNuevaContrasena(requestContra),
                     { status: 'ok', mensaje: 'Contraseña registrada exitosamente.' }
                 );

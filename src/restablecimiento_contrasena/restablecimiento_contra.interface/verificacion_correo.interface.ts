@@ -3,16 +3,21 @@ export interface email {
 }
 
 export interface tokenUsuario {
-    id:number,
-    email:string
+    idUsuario: number,
+    email: string
 }
 
-export interface ContrasenaUsuario{
-    id:number,
-    contrasena:string
+export interface ContrasenaUsuario {
+    idUsuario: number,
+    contrasena: string
 }
 
-export interface tokenValidacion{
-    idUsuario:number
-    tokenUsuario:number
+export interface tokenValidacion {
+    idUsuario: number
+    tokenUsuario: number
+}
+
+export interface DatosToken {
+    clave: number,
+    fechaExpiracion: string
 }
