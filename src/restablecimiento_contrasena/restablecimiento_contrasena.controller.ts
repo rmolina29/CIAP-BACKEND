@@ -45,9 +45,9 @@ export class RestablecimientoContrasenaController {
             // esto me retorna el token de 4 digitos y la fecha de expiracion del token
             const datosToken: Object = await this.serviceContrasena.generar_token(usuario_valido.id_usuario);
             //aqui se envia el correo electronico al usuario con el token generado
-            const enviar_correo = await this.servicioCorreo.envio_correo(usuario_valido, datosToken);
+            this.servicioCorreo.envio_correo(usuario_valido, datosToken);
 
-            res.json(enviar_correo);
+            res.json({ status: 'ok', mensaje: 'correo enviado correctamente' });
 
         } catch (error) {
             console.error('Error executing query:', error);
@@ -66,13 +66,18 @@ export class RestablecimientoContrasenaController {
             //TENIENDO EN CUENTA QUE SE ENVIA EL ID DEL USUARIO 
             const response = usuarioToken.length === 0
                 // si no se recibe informacion del query el token es invalido
-                ? res.json({ status: 'no', mensaje: 'el token es inválido' })
+                ? { status: 'no', mensaje: 'el token es inválido' }
                 //sino se revisa el estado en el que lleva el token 
-                : usuarioToken[0].estado === 0
-                    // si se encuentra en 0 esta en estado de expiracion
-                    ? res.json({ status: 'no', mensaje: 'token expirado' })
+                : usuarioToken[0].estado === 2
+                    // si se encuentra en 2 esta en estado de expiracion
+                    ? { status: 'no', mensaje: 'token expirado' }
                     // sino tiene autorizacion al cambio de contraseña
-                    : res.json({ status: 'ok', mensaje: 'Autorizado' });
+                    :
+                    (
+                        await servicioToken.estadoVerificado(body.idUsuario),
+                        { status: 'ok', mensaje: 'Autorizado' }
+                    )
+
 
             res.json(response);
 
@@ -101,7 +106,7 @@ export class RestablecimientoContrasenaController {
 
                 ? { status: 'no', mensaje: 'La contraseña ya se encuentra registrada. Por favor, elija una contraseña diferente.' }
                 : (
-                    await this.serviceContrasena. actualizacionEstadoContasena(requestContra.id),
+                    await this.serviceContrasena.actualizacionEstadoContasena(requestContra.id),
                     await this.serviceContrasena.registroNuevaContrasena(requestContra),
                     { status: 'ok', mensaje: 'Contraseña registrada exitosamente.' }
                 );
