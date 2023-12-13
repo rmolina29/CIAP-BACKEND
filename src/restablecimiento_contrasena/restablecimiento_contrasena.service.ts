@@ -91,25 +91,37 @@ export class RestablecimientoContrasenaService {
             let usuarioVerificacionToken = await this.conexion.query(sql);
 
             return usuarioVerificacionToken;
+
         } catch (error) {
-            console.error('Error executing query:', error);
-            return { mensaje: 'Error executing query' };
+            console.error('problema en la base de datos');
+            throw new Error('error de servidor');
+        } finally {
+            await this.dbConexionServicio.closeConnection();
         }
 
     }
 
     async estadoVerificado(id_usuario: number) {
-        this.conexion = await this.dbConexionServicio.connectToDatabase()
-        this.conexion = this.dbConexionServicio.getConnection();
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
 
-        // estado que se cambia al usuario verificar los digitos que se enviaron a traves del correo
-        let estado = 1;
+            // estado que se cambia al usuario verificar los digitos que se enviaron a traves del correo
+            let estado = 1;
 
-        // se actualiza el estado a verificado 
-        let sql = `UPDATE usuario_token SET estado = '${estado}' WHERE id_usuario = '${id_usuario}' ORDER BY id DESC LIMIT 1`;
+            // se actualiza el estado a verificado 
+            let sql = `UPDATE usuario_token SET estado = '${estado}' WHERE id_usuario = '${id_usuario}' ORDER BY id DESC LIMIT 1`;
 
-        // tener presente el await
-        await this.conexion.query(sql);
+            // tener presente el await
+            await this.conexion.query(sql);
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error('error de servidor');
+        } finally {
+            await this.dbConexionServicio.closeConnection();
+        }
+
 
     }
 
