@@ -85,8 +85,8 @@ export class RestablecimientoContrasenaService {
             this.conexion = this.dbConexionServicio.getConnection();
 
             let sql = `
-            SELECT id,estado FROM usuario_token WHERE id_usuario = '${usuarioValidacionToken.idUsuario}' and token = '${usuarioValidacionToken.tokenUsuario}'
-            ORDER BY estado DESC LIMIT 1;`;
+            SELECT id,estado,token FROM usuario_token WHERE id_usuario = '${usuarioValidacionToken.idUsuario}'
+            ORDER BY id DESC LIMIT 1;`;
 
             let usuarioVerificacionToken = await this.conexion.query(sql);
 
@@ -101,7 +101,7 @@ export class RestablecimientoContrasenaService {
 
     }
 
-    async estadoVerificado(id_usuario: number) {
+    async estadoVerificado(validacion:tokenValidacion) {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
@@ -110,7 +110,7 @@ export class RestablecimientoContrasenaService {
             let estado = 1;
 
             // se actualiza el estado a verificado 
-            let sql = `UPDATE usuario_token SET estado = '${estado}' WHERE id_usuario = '${id_usuario}' ORDER BY id DESC LIMIT 1`;
+            let sql = `UPDATE usuario_token SET estado = '${estado}' WHERE id_usuario = '${validacion.idUsuario}' AND token = '${validacion.tokenUsuario}'`;
 
             // tener presente el await
             await this.conexion.query(sql);

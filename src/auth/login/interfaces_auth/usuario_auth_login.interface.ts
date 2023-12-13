@@ -25,4 +25,5 @@ export interface RespuestaDataUsuario {
     estado_bloqueo:number;
     mail:string;
     estado_contrasena: string;
+    fechaContrasena: string;
   }

@@ -9,7 +9,8 @@ export interface tokenUsuario {
 
 export interface ContrasenaUsuario {
     idUsuario: number,
-    contrasena: string
+    contrasena: string,
+    Recontrasena?:string
 }
 
 export interface tokenValidacion {

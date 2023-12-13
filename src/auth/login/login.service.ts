@@ -27,10 +27,10 @@ export class LoginService {
             correo = correo.trim();
             contrasena = contrasena.trim();
 
-            let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario,ur.tipo as nombre_rol, udp.nombres ,udp.apellidos,udp.correo,urc.estado as estado_contrasena, ua.estado_bloqueo
+            let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario,ur.tipo as nombre_rol, udp.nombres ,udp.apellidos,udp.correo,urc.estado as estado_contrasena, ua.estado_bloqueo,urc.fechasistema as fechaContrasena
             FROM usuario_auth ua 
             JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
-            JOIN usuario_reg_contrasena urc ON ua.id = urc.id_usuario
+            JOIN usuario_reg_contrasena urc ON ua.id = urc.id_usuario AND urc.estado = 1
             JOIN usuario_rol ur ON ua.id_rol = ur.id 
             WHERE (udp.correo = '${correo}' or ua.nombre_usuario = '${nombre_usuario}') and urc.contrasena = '${contrasena}'`;
 
@@ -40,7 +40,7 @@ export class LoginService {
 
         } catch (error) {
             console.error('problema en la base de datos');
-            throw new Error('error de servidor');
+            throw new Error(error);
         } finally {
             await this.dbConexionServicio.closeConnection();
         }
@@ -80,6 +80,22 @@ export class LoginService {
 
     }
 
+    async usuarioParametrizacionData() {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            let sql = 'SELECT * FROM usuario_parametros_login'
+
+            let dataUsuarioParametrizacion = await this.conexion.query(sql);
+
+            return { data: dataUsuarioParametrizacion[0] }
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error(error);
+        }
+    }
 
     async cuentaUsuarioBloqueo(id_usuario: number) {
         try {
@@ -89,7 +105,7 @@ export class LoginService {
             // estado que se cambia cuando el usuario realizo 3 intentos fallidos
             let estado = 1;
 
-            let fechaDesbloqueo = this.fecha_bloqueo_usuario()
+            let fechaDesbloqueo = await this.fecha_bloqueo_usuario()
 
             // se actualiza el estado a usuario bloqueado 
             let sql = `UPDATE usuario_auth SET estado_bloqueo = '${estado}',tiempo_desbloqueo = '${fechaDesbloqueo}'  WHERE id = '${id_usuario}'`;
@@ -99,18 +115,21 @@ export class LoginService {
 
         } catch (error) {
             console.error('problema en la base de datos');
-            throw new Error('error de servidor');
+            throw new Error(error);
         } finally {
             await this.dbConexionServicio.closeConnection();
         }
 
     }
 
-    fecha_bloqueo_usuario() {
+    async fecha_bloqueo_usuario() {
+        var dataUsuarioParametrizacion = await this.usuarioParametrizacionData()
+
+        var tiempoRelogin = dataUsuarioParametrizacion.data.tiempo_relogin
 
         var fechaActualUTC = moment().utc();
         var fechaActualColombia = fechaActualUTC.tz("America/Bogota");
-        var fechaExpiracion = moment(fechaActualColombia).add(30, "minutes");
+        var fechaExpiracion = moment(fechaActualColombia).add(tiempoRelogin, "minutes");
         var fechaBloqueo = fechaExpiracion.format("YYYY-MM-DD HH:mm:ss");
 
         return fechaBloqueo
