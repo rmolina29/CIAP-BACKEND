@@ -62,22 +62,19 @@ export class RestablecimientoContrasenaController {
             let servicioToken = this.serviceContrasena
             // selecciona el ultimo token que genero el usuario y verifica si el token esta expirado o no
             const usuarioToken = await servicioToken.validarEsatdoToken(body);
+            let response: any;
 
-            //TENIENDO EN CUENTA QUE SE ENVIA EL ID DEL USUARIO 
-            const response = usuarioToken.length === 0
-                // si no se recibe informacion del query el token es invalido
-                ? { status: 'no', mensaje: 'el token es inválido' }
-                //sino se revisa el estado en el que lleva el token 
-                : usuarioToken[0].estado === 2
-                    // si se encuentra en 2 esta en estado de expiracion
-                    ? { status: 'no', mensaje: 'token expirado' }
-                    // sino tiene autorizacion al cambio de contraseña
-                    :
-                    (
-                        await servicioToken.estadoVerificado(body.idUsuario),
-                        { status: 'ok', mensaje: 'Autorizado' }
-                    )
+            if (usuarioToken[0].token === body.tokenUsuario && usuarioToken[0].estado === 0) {
+                await servicioToken.estadoVerificado(body),
+                    response = { status: 'ok', mensaje: 'Autorizado' };
+            } else if (usuarioToken[0].token != body.tokenUsuario) {
+                response = { status: 'no', mensaje: 'el token es inválido' }
 
+            } else if (usuarioToken[0].token === body.tokenUsuario && usuarioToken[0].estado === 1) {
+                response = { status: 'no', mensaje: 'el token ya fue usado' };
+            } else if (usuarioToken[0].token === body.tokenUsuario && usuarioToken[0].estado === 2) {
+                response = { status: 'no', mensaje: 'token expirado' };
+            }
 
             res.json(response);
 
