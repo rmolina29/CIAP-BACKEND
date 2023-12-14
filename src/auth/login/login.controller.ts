@@ -26,8 +26,11 @@ export class LoginController {
                         'response': {
                             login: false,
                             status: 'ca',
-                            idUsuario:data_object_usuario.id_ua,
+
                             mensaje: 'El usuario ha pasado el tiempo de caducidad de contraseña.'
+                        },
+                        'data': {
+                            idUsuario: data_object_usuario.id_ua
                         }
                     };
                 }
