@@ -23,6 +23,7 @@ export class LoginController {
             const data_auth_usuario: RespuestaDataUsuario[] = await this.servicioLogin.auth_login(usuario);
             const data_object_usuario: RespuestaDataUsuario = data_auth_usuario[0];
 
+            // se valida si el usuario ingreso la cuenta correctamente
             if (this.loginExitoso(data_auth_usuario)) {
                 // la caducidad de la contraseña se maneja por la fecha en el que se creo la contraseña y la comparamos
                 if (await this.usuarioContrasenaCaducada(data_object_usuario.fechaContrasena)) {
@@ -45,7 +46,7 @@ export class LoginController {
                         'response': {
                             login: false,
                             status: 'bl',
-                            mensaje: `La cuenta ha sido bloqueada por ${tiempoRelogin} minutos, por favor intente nuevamente en más tarde.`
+                            mensaje: `Su cuenta ha sido bloqueada. Intente ingresar nuevamente después de transcurridos ${tiempoRelogin} minutos.`
                         }
                     };
                 }
