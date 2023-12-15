@@ -10,7 +10,7 @@ export class CrudUsuarioController {
 
     constructor(private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService) { }
 
-    @Post('/registrarRol')
+    @Post('/roles')
     async rolRegistro(@Body() body: bodyRolRegistro, @Res() res: Response) {
 
         try {
@@ -42,13 +42,13 @@ export class CrudUsuarioController {
 
     }
 
-    @Get('/obtenerRoles')
+    @Get('/rol')
     async obtenerRoles(@Res() res: Response) {
         const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
         res.status(HttpStatus.OK).json(obtenerDatosRoles)
     }
 
-    @Put('/actualizartrarRolnombre')
+    @Put('/rol/nombre')
     async actualizarRol(@Body() rol: RolNombre, @Res() res: Response) {
         try {
             let nombre = rol.nombreRol;
@@ -74,7 +74,7 @@ export class CrudUsuarioController {
 
     }
 
-    @Put('/actualizartrarRolEstado')
+    @Put('/rol/estado')
     async actualizarEstado(@Body() rol: RolEstado, @Res() res: Response) {
         try {
             const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol)

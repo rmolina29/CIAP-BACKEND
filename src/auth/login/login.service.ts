@@ -67,6 +67,7 @@ export class LoginService {
                     WHERE udp.correo = '${correo}' or ua.nombre_usuario = '${nombre_usuario}' `;
 
             let dataUsu = await this.conexion.query(sql);
+            
             return dataUsu;
 
 

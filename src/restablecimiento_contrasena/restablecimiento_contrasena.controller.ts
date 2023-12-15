@@ -16,18 +16,17 @@ export class RestablecimientoContrasenaController {
         try {
             const obtener_email: Array<any> = await this.serviceContrasena.email_usuario_existe(mail);
             const datos_usuario = obtener_email[0]
-            const usuario = obtener_email.length > 0
-
-                ? {
-                    'response': { status: 'ok', mensaje: 'autorizado' },
-                    'data': datos_usuario
+            const usuario = obtener_email.length > 0 ? 
+            {
+                'response': { status: 'ok', mensaje: 'autorizado' },
+                'data': datos_usuario
+            } : 
+            {
+                'response': {
+                    status: 'no',
+                    mensaje: 'email incorrecto, no autorizado'
                 }
-                : {
-                    'response': {
-                        status: 'no',
-                        mensaje: 'email incorrecto, no autorizado'
-                    }
-                };
+            };
 
             // estado de la solicitud
             res.status(200).json(usuario);

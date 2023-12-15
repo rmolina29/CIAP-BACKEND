@@ -68,7 +68,6 @@ export class CrudRolService {
             let sql = `SELECT * FROM usuario_rol `;
 
             let existeRol = await this.conexion.query(sql);
-            console.log(existeRol[0]);
 
             return existeRol;
 
