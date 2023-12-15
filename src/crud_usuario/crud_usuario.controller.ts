@@ -51,8 +51,29 @@ export class CrudUsuarioController {
     }
 
     @Put('/actualizartrarRolnombre')
-    async actualizarRol(@Body() rol: RolNombre) {
+    async actualizarRol(@Body() rol: RolNombre, @Res() res: Response) {
         try {
+            let nombre = rol.nombreRol;
+
+            const verificacionExisteRol = await this.serivioRol.verificacionRolExiste(nombre);
+            let response: responseRolRegistro;
+
+            if (verificacionExisteRol) {
+                response = {
+                    status: 'no',
+                    mensaje: `el rol ${nombre} ya existe, no se puede actualizar.`,
+                    respuestHttp: 200
+                }
+            } else {
+                await this.serivioRol.actualizarNombreRol(rol)
+                response = {
+                    status: 'ok',
+                    mensaje: `el rol ${nombre} asignado se ha actualizado correctamente.`,
+                    respuestHttp: 200
+                }
+            }
+
+            res.status(response.respuestHttp).json(response)
 
         } catch (error) {
             console.error('problema en la respuesta del controller');
@@ -64,7 +85,7 @@ export class CrudUsuarioController {
     @Put('/actualizartrarRolEstado')
     async actualizarRolEstado(@Body() rol: RolEstado, @Res() res: Response) {
         try {
-            await this.serivioRol.actualizaeEstadoRol(rol)
+            await this.serivioRol.actualizarEstadoRol(rol)
             if (rol.estado == 1) {
                 res.status(200).json({
                     status: 'ok',

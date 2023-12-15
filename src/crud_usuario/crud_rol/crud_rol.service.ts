@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Connection } from 'mariadb';
 import { DatabaseService } from 'src/database/database.service';
-import { RolEstado } from './rol.interface/rol.interface';
+import { RolEstado, RolNombre } from './rol.interface/rol.interface';
 
 @Injectable()
 export class CrudRolService {
@@ -83,13 +83,32 @@ export class CrudRolService {
 
     }
 
-    async actualizaeEstadoRol(rolEstado: RolEstado) {
+    async actualizarEstadoRol(rolEstado: RolEstado) {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
 
             // estado que se cambia al usuario verificar los digitos que se enviaron a traves del correo
             let sql = `UPDATE usuario_rol  SET estado = '${rolEstado.estado}'  WHERE id = '${rolEstado.idRol}'`;
+
+            await this.conexion.query(sql);
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error(`error de servidor: ${error}`);
+        } finally {
+            await this.dbConexionServicio.closeConnection();
+        }
+
+
+    }
+    async actualizarNombreRol(RolNombre: RolNombre) {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            // estado que se cambia al usuario verificar los digitos que se enviaron a traves del correo
+            let sql = `UPDATE usuario_rol  SET tipo = '${RolNombre.nombreRol}'  WHERE id = '${RolNombre.idRol}'`;
 
             await this.conexion.query(sql);
 
