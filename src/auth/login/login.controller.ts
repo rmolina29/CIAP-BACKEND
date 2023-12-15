@@ -6,7 +6,9 @@ import * as moment from 'moment-timezone';
 
 @Controller('/auth')
 export class LoginController {
-    constructor(private readonly servicioLogin: LoginService) { }
+    constructor(private readonly servicioLogin: LoginService) {
+   
+    }
 
     private intentosLoginContador: number = 0;
     private lockedUntil: number = null;
@@ -16,32 +18,34 @@ export class LoginController {
     async auth(@Body() usuario: DataLogin, @Res() res: Response): Promise<void> {
         try {
             let respuesta_auth: any;
+            let tiempoRelogin = await this.servicioLogin.tiempoRelogin()
 
             const data_auth_usuario: RespuestaDataUsuario[] = await this.servicioLogin.auth_login(usuario);
             const data_object_usuario: RespuestaDataUsuario = data_auth_usuario[0];
 
             if (this.loginExitoso(data_auth_usuario)) {
+                // la caducidad de la contraseña se maneja por la fecha en el que se creo la contraseña y la comparamos
                 if (await this.usuarioContrasenaCaducada(data_object_usuario.fechaContrasena)) {
                     respuesta_auth = {
                         'response': {
                             login: false,
                             status: 'ca',
-
-                            mensaje: 'El usuario ha pasado el tiempo de caducidad de contraseña.'
+                            mensaje: 'El usuario ha superado el tiempo de caducidad de contraseña.'
                         },
                         'data': {
-                            idUsuario: data_object_usuario.id_ua
+                            id_usuario: data_object_usuario.id_ua
                         }
                     };
                 }
 
                 // primero validamos si hay una cuenta y si la cuenta esta bloqueada 
                 else if (this.cuentaBloqueada(data_object_usuario)) {
+            
                     respuesta_auth = {
                         'response': {
                             login: false,
                             status: 'bl',
-                            mensaje: 'Cuenta bloqueada. Intenta nuevamente más tarde.'
+                            mensaje: `La cuenta ha sido bloqueada por ${tiempoRelogin} minutos, por favor intente nuevamente en más tarde.`
                         }
                     };
                 }
@@ -73,7 +77,7 @@ export class LoginController {
                         'response': {
                             login: false,
                             status: 'bl',
-                            mensaje: 'Cuenta bloqueada. Intenta nuevamente más tarde.'
+                            mensaje: `La cuenta ha sido bloqueada por ${tiempoRelogin} minutos, por favor intente nuevamente en más tarde.`
                         }
                     };
                 } else {
@@ -107,7 +111,7 @@ export class LoginController {
         return fechaActualColombia
     }
 
-    // teniendo en cuenta que la caducidad es por meses
+    // En este metodo se utilizara 
     private async usuarioContrasenaCaducada(_fechaContrasena: any): Promise<boolean> {
         let usuarioParametrizacion = await this.servicioLogin.usuarioParametrizacionData()
         let tiempoContrasena = usuarioParametrizacion.data.tiempo_contrasena;

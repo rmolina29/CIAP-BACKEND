@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Connection } from 'mariadb';
 import { DatabaseService } from 'src/database/database.service';
-import { RolEstado, RolNombre } from './rol.interface/rol.interface';
+import { DataRol, RolEstado, RolNombre } from './rol.interface/rol.interface';
 
 @Injectable()
 export class CrudRolService {
@@ -48,8 +48,6 @@ export class CrudRolService {
 
             let existeRol = await this.conexion.query(sql);
 
-            console.log(existeRol.length > 0);
-
             return existeRol.length > 0;
 
         } catch (error) {
@@ -60,7 +58,7 @@ export class CrudRolService {
         }
 
     }
-    async obtenerRoles(): Promise<any> {
+    async obtenerRoles(): Promise<DataRol> {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
 
@@ -92,6 +90,27 @@ export class CrudRolService {
             let sql = `UPDATE usuario_rol  SET estado = '${rolEstado.estado}'  WHERE id = '${rolEstado.idRol}'`;
 
             await this.conexion.query(sql);
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error(`error de servidor: ${error}`);
+        } finally {
+            await this.dbConexionServicio.closeConnection();
+        }
+
+
+    }
+
+    async ExisteIdRol(idRol: number) {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            let sql = `SELECT tipo FROM usuario_rol WHERE id = '${idRol}'`;
+
+            const rolData = await this.conexion.query(sql);
+
+            return rolData.length === 0;
 
         } catch (error) {
             console.error('problema en la base de datos');

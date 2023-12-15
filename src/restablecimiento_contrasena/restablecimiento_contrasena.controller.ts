@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
 import { RestablecimientoContrasenaService } from './restablecimiento_contrasena.service';
 import { ContrasenaUsuario, DatosToken, email, tokenValidacion } from './restablecimiento_contra.interface/verificacion_correo.interface';
 import { Response } from 'express';

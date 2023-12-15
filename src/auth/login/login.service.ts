@@ -80,6 +80,12 @@ export class LoginService {
 
     }
 
+    async tiempoRelogin():Promise<string>{
+        let usuarioParametrizacion = await this.usuarioParametrizacionData()
+        let tiempoRelogin = usuarioParametrizacion.data.tiempo_relogin;
+        return tiempoRelogin
+    }
+
     async usuarioParametrizacionData() {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
