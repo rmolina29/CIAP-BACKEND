@@ -1,63 +1,67 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { LoginService } from './login.service';
-import { RespuestaDataUsuario, DataLogin } from './interfaces_auth/usuario_auth_login.interface';
+import { DataLogin, RespuestaDataUsuario } from './dto_autenticacion/usuario_autenticacion.dto';
 import * as moment from 'moment-timezone';
 
 @Controller('/auth')
 export class LoginController {
-    constructor(private readonly servicioLogin: LoginService) {
+    constructor(private readonly servicioLogin: LoginService) {}
 
-    }
-
-    private intentosLoginContador: number = 0;
-    private lockedUntil: number = null;
+    private intentosLogin: number = 0;
+    private bloqueoCuenta: number = null;
 
 
     @Post('/login')
     async auth(@Body() usuario: DataLogin, @Res() res: Response): Promise<void> {
         try {
-            const tiempoRelogin = parseInt(await this.servicioLogin.tiempoRelogin()) ;
-            const respuesta_auth = await this.handleAuthentication(usuario, tiempoRelogin);
+            const tiempoRelogin = parseInt(await this.servicioLogin.tiempoRelogin());
+            const respuestaAutenticacion = await this.controlDeAutenticacion(usuario, tiempoRelogin);
 
-            res.json(respuesta_auth);
+            res.json(respuestaAutenticacion);
 
         } catch (error) {
             console.error('Error executing query:', error);
-            res.status(500).json({ mensaje: 'Error executing query' });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query' });
         }
     }
 
-    private async handleAuthentication(usuario: DataLogin, tiempoRelogin: number): Promise<any> {
+    private async controlDeAutenticacion(usuario: DataLogin, tiempoRelogin: number): Promise<any> {
 
         const data_auth_usuario: RespuestaDataUsuario[] = await this.servicioLogin.auth_login(usuario);
-        const data_object_usuario: RespuestaDataUsuario = data_auth_usuario[0];
+        const datosObjetoUsuario: RespuestaDataUsuario = data_auth_usuario[0];
 
         if (this.loginExitoso(data_auth_usuario)) {
-            return await this.handleSuccessfulLogin(data_object_usuario, tiempoRelogin);
+            return await this.manejoExitosoAutenticacion(datosObjetoUsuario, tiempoRelogin);
         } else {
-            console.log('bloque bloqueo');
-            
-            return await this.handleFailedLogin(usuario, tiempoRelogin);
+            return await this.manejoAutenticacionFallida(usuario, tiempoRelogin);
         }
     }
 
-    private async handleSuccessfulLogin(data_object_usuario: RespuestaDataUsuario, tiempoRelogin: number): Promise<any> {
-        
-        if (await this.usuarioContrasenaCaducada(data_object_usuario.fechaContrasena)) {
+    private async manejoExitosoAutenticacion(datosObjetoUsuario: RespuestaDataUsuario, tiempoRelogin: number): Promise<any> {
+
+        if (datosObjetoUsuario.tipo_contrasena === 0) {
+            return {
+                response: {
+                    login: false,
+                    status: 'bl',
+                    mensaje: 'El usuario debe cambiar la contraseña antes de iniciar sesion por primera vez.'
+                }
+            }
+        }
+
+        else if (await this.usuarioContrasenaCaducada(datosObjetoUsuario.fechaContrasena)) {
             return {
                 response: {
                     login: false,
                     status: 'ca',
                     mensaje: 'El usuario ha superado el tiempo de caducidad de contraseña.',
                 },
-                data: { id_usuario: data_object_usuario.id_ua },
+                data: { id_usuario: datosObjetoUsuario.id_ua },
             };
 
-        } 
-      
-        
-        else if (this.cuentaBloqueada(data_object_usuario)) {
+        }
+        else if (this.cuentaBloqueada(datosObjetoUsuario)) {
             return {
                 response: {
                     login: false,
@@ -66,18 +70,18 @@ export class LoginController {
                 },
             };
         } else {
-            this.resetLoginAttempts();
+            this.reseteContadorFallidos();
             return {
-                data: data_object_usuario,
+                data: datosObjetoUsuario,
                 response: { status: 'ok', mensaje: 'autorizado' },
             };
         }
     }
 
-    private async handleFailedLogin(usuario: DataLogin, tiempoRelogin: number): Promise<any> {
+    private async manejoAutenticacionFallida(usuario: DataLogin, tiempoRelogin: number): Promise<any> {
 
         const usuarioExiste = await this.servicioLogin.verificarUsuario(usuario);
-        this.intentosLoginContador = usuarioExiste.length > 0 ? this.intentosLoginContador + 1 : 0;
+        this.intentosLogin = usuarioExiste.length > 0 ? this.intentosLogin + 1 : 0;
         var cuentaBloqueada = await this.existeCuentaBloqueada()
 
         if (cuentaBloqueada) {
@@ -86,7 +90,7 @@ export class LoginController {
                 response: {
                     login: false,
                     status: 'bl',
-                    mensaje:`Su cuenta ha sido bloqueada. Intente ingresar nuevamente después de transcurridos ${tiempoRelogin} minutos.`,
+                    mensaje: `Su cuenta ha sido bloqueada. Intente ingresar nuevamente después de transcurridos ${tiempoRelogin} minutos.`,
                 },
             };
         } else {
@@ -100,15 +104,11 @@ export class LoginController {
         }
     }
 
-    private resetLoginAttempts(): void {
-        this.intentosLoginContador = 0;
-        this.lockedUntil = null;
+    // se reinicia cuando el usuario entre exitosamente
+    private reseteContadorFallidos(): void {
+        this.intentosLogin = 0;
+        this.bloqueoCuenta = null;
     }
-
-    private incrementLoginAttempts(usuarioExiste: any[]): void {
-        this.intentosLoginContador = usuarioExiste?.length > 0 ? this.intentosLoginContador + 1 : 0;
-    }
-
 
 
     // esta funcion me mostrata los meses que se han pasado a partir de que se creo la ultima contraseña del usuario
@@ -130,18 +130,21 @@ export class LoginController {
         return mesCaducidadContrasena < fechaActual;
     }
 
+    // se hace la verificacion de que si el usuario esta bloqueado 
     private cuentaBloqueada(dataUsuario: RespuestaDataUsuario): boolean {
         return dataUsuario && dataUsuario.estado_bloqueo === 1;
     }
 
+    // aqui verifiamos el login exitoso del usuario por medio de las credenciales del (correo o usuario) y de la contraseña
     private loginExitoso(dataUsuarios: RespuestaDataUsuario[]): boolean {
         return dataUsuarios.length > 0;
     }
 
+    // aqui a traves de la fecha del bloqueo verificamos si el usuario aun sigue con la cuenta bloqueada o no
     private async existeCuentaBloqueada(): Promise<boolean> {
         let usuarioParametrizacion = await this.servicioLogin.usuarioParametrizacionData()
         let cantidadLoginValidos = usuarioParametrizacion.data.cantidad_login_valido;
-        return this.intentosLoginContador >= cantidadLoginValidos && !this.lockedUntil;
+        return this.intentosLogin >= cantidadLoginValidos && !this.bloqueoCuenta;
     }
 
 }

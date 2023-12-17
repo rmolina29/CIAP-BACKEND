@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Connection } from 'mariadb';
 import { DatabaseService } from 'src/database/database.service';
-import { DataRol, RolEstado, RolNombre } from './rol.interface/rol.interface';
+import { DataRol, RolEstado, RolNombre } from './dto/rol.dto';
 
 @Injectable()
 export class CrudRolService {

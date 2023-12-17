@@ -1,16 +1,23 @@
 import { Body, Controller, Get, HttpStatus, NotFoundException, Post, Put, Res } from '@nestjs/common';
 import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
-import { DataRol, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/rol.interface/rol.interface';
+
 import { Response } from 'express';
-import { RolEstado } from './crud_rol/dto/rol.dto';
+import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
 
 @Controller('/usuario')
 export class CrudUsuarioController {
 
     constructor(private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService) { }
 
-    @Post('/roles')
+
+    @Get('/roles')
+    async obtenerRoles(@Res() res: Response) {
+        const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
+        res.status(HttpStatus.OK).json(obtenerDatosRoles)
+    }
+    
+    @Post('/rol/registro')
     async rolRegistro(@Body() body: bodyRolRegistro, @Res() res: Response) {
 
         try {
@@ -42,11 +49,7 @@ export class CrudUsuarioController {
 
     }
 
-    @Get('/rol')
-    async obtenerRoles(@Res() res: Response) {
-        const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
-        res.status(HttpStatus.OK).json(obtenerDatosRoles)
-    }
+
 
     @Put('/rol/nombre')
     async actualizarRol(@Body() rol: RolNombre, @Res() res: Response) {
@@ -54,7 +57,6 @@ export class CrudUsuarioController {
             let nombre = rol.nombreRol;
 
             const verificacionExisteRol = await this.serivioRol.verificacionRolExiste(nombre);
-
 
             const mensaje = verificacionExisteRol ? {
                 status: 'no', mensaje: `el rol ${nombre} ya existe, no se puede actualizar.`,
@@ -82,6 +84,7 @@ export class CrudUsuarioController {
             if (ExisteIdRol) {
                 throw new NotFoundException(`El id del rol '${rol.idRol}' no existe.`);
             }
+            
             await this.serivioRol.actualizarEstadoRol(rol);
 
             const response = rol.estado === 1 ? 'rol activado' : 'rol desactivado';

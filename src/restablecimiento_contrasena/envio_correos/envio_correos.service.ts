@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { Email } from './email.interface/email.interface';
 import { Response } from 'express';
-import { DatosToken } from '../restablecimiento_contra.interface/verificacion_correo.interface';
+import { DatosToken } from '../restablecimiento_contra.dto/verificacion_correo.dto';
+import { Email } from './email.dto/email.dto';
 
 @Injectable()
 export class EnvioCorreosService {
