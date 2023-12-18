@@ -1,10 +1,10 @@
 import { Body, Controller, Get, HttpStatus, NotFoundException, Post, Put, Res } from '@nestjs/common';
 import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
-
 import { Response } from 'express';
 import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
-import { Registrar } from './dtoCrudUsuario/crudUser.dto';
+import { DatosPersonales } from './dtoCrudUsuario/crudUser.dto';
+import { RespuestaPeticion } from 'src/mensjaes_usuario/mensajes-usuario.enum';
 
 @Controller('/usuario')
 export class CrudUsuarioController {
@@ -111,13 +111,34 @@ export class CrudUsuarioController {
 
     // Se registrara el usuario
     @Post('/registrar')
-    async crearUsuario(@Body() usuario:Registrar,@Res() res: Response ){
-
+    async crearUsuario(@Body() usuario: DatosPersonales, @Res() res: Response) {
         try {
-            
+            const idUsuarioInsert = await this.sevicioUsuario.registrarUsuario(usuario);
+            res.status(HttpStatus.OK).json({ id: idUsuarioInsert, status: RespuestaPeticion.OK });
         } catch (error) {
             console.error('Error executing query:', error.message);
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query' });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query', err: error.message });
+        }
+
+    }
+
+
+    // mostrar todos los usuarios
+    @Get('/listar')
+    async usuarios(@Res() res: Response) {
+        const obtenerUsuarios: any = await this.sevicioUsuario.obtenerUsuarios();
+        res.status(HttpStatus.OK).json(obtenerUsuarios);
+    }
+
+
+    @Put('/actualizar')
+    async ActualizarUsuario(@Body() usuario: any, @Res() res: Response) {
+        try {
+            const actualizarUsuario: any = await this.sevicioUsuario.actualizarUsuarios(usuario);
+            res.status(HttpStatus.OK).json(actualizarUsuario);
+        } catch (error) {
+            console.error('Error executing query:', error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query', err: error.message });
         }
 
     }
