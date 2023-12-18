@@ -21,7 +21,7 @@ export class CrudRolService {
 
             let sql = `INSERT INTO usuario_rol (tipo) VALUES ('${rolRegistro}') `;
 
-            await this.conexion.query(sql);
+            return await this.conexion.query(sql);
 
         } catch (error) {
             console.error('problema en la base de datos');

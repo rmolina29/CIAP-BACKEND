@@ -4,19 +4,23 @@ import { CrudUsuarioService } from './crud_usuario.service';
 
 import { Response } from 'express';
 import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
+import { Registrar } from './dtoCrudUsuario/crudUser.dto';
 
 @Controller('/usuario')
 export class CrudUsuarioController {
 
     constructor(private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService) { }
 
+    // crud de roles 
 
+    // se obtienen todos los roles que etsan registrados
     @Get('/roles')
     async obtenerRoles(@Res() res: Response) {
         const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
         res.status(HttpStatus.OK).json(obtenerDatosRoles)
     }
-    
+
+    // se crean los roles
     @Post('/rol/registro')
     async rolRegistro(@Body() body: bodyRolRegistro, @Res() res: Response) {
 
@@ -49,8 +53,7 @@ export class CrudUsuarioController {
 
     }
 
-
-
+    // se actualiza el nombre del rol
     @Put('/rol/nombre')
     async actualizarRol(@Body() rol: RolNombre, @Res() res: Response) {
         try {
@@ -76,6 +79,7 @@ export class CrudUsuarioController {
 
     }
 
+    // se actualiza el estado del rol a descativado o activado
     @Put('/rol/estado')
     async actualizarEstado(@Body() rol: RolEstado, @Res() res: Response) {
         try {
@@ -84,7 +88,7 @@ export class CrudUsuarioController {
             if (ExisteIdRol) {
                 throw new NotFoundException(`El id del rol '${rol.idRol}' no existe.`);
             }
-            
+
             await this.serivioRol.actualizarEstadoRol(rol);
 
             const response = rol.estado === 1 ? 'rol activado' : 'rol desactivado';
@@ -102,4 +106,20 @@ export class CrudUsuarioController {
             });
         }
     }
+
+    // crud de usuarios
+
+    // Se registrara el usuario
+    @Post('/registrar')
+    async crearUsuario(@Body() usuario:Registrar,@Res() res: Response ){
+
+        try {
+            
+        } catch (error) {
+            console.error('Error executing query:', error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query' });
+        }
+
+    }
+
 }
