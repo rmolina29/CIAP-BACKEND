@@ -3,17 +3,16 @@ import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
 import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
-import { DatosPersonales } from './dtoCrudUsuario/crudUser.dto';
-import { RespuestaPeticion } from 'src/mensjaes_usuario/mensajes-usuario.enum';
+import { DatosUsuario } from './dtoCrudUsuario/crudUser.dto';
+import { MensajeAlerta, RespuestaPeticion } from 'src/mensjaes_usuario/mensajes-usuario.enum';
 
 @Controller('/usuario')
 export class CrudUsuarioController {
 
     constructor(private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService) { }
-
     // crud de roles 
 
-    // se obtienen todos los roles que etsan registrados
+    // se obtienen todos los roles que estan registrados
     @Get('/roles')
     async obtenerRoles(@Res() res: Response) {
         const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
@@ -108,20 +107,19 @@ export class CrudUsuarioController {
     }
 
     // crud de usuarios
-
     // Se registrara el usuario
     @Post('/registrar')
-    async crearUsuario(@Body() usuario: DatosPersonales, @Res() res: Response) {
+    async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
+            await this.excepcionesRegistroUsuarios(usuario);
             const idUsuarioInsert = await this.sevicioUsuario.registrarUsuario(usuario);
             res.status(HttpStatus.OK).json({ id: idUsuarioInsert, status: RespuestaPeticion.OK });
         } catch (error) {
             console.error('Error executing query:', error.message);
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query', err: error.message });
+            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
 
     }
-
 
     // mostrar todos los usuarios
     @Get('/listar')
@@ -130,17 +128,47 @@ export class CrudUsuarioController {
         res.status(HttpStatus.OK).json(obtenerUsuarios);
     }
 
-
     @Put('/actualizar')
-    async ActualizarUsuario(@Body() usuario: any, @Res() res: Response) {
+    async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
-            const actualizarUsuario: any = await this.sevicioUsuario.actualizarUsuarios(usuario);
-            res.status(HttpStatus.OK).json(actualizarUsuario);
+            await this.excepcionesRegistroUsuarios(usuario);
+            await this.sevicioUsuario.actualizarUsuarios(usuario);
+            res.status(HttpStatus.OK).json({ id: usuario.idUsuario, status: RespuestaPeticion.OK });
         } catch (error) {
-            console.error('Error executing query:', error.message);
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query', err: error.message });
+            console.error(error.message);
+            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
 
+    }
+
+    // aqui se hara la validaciones la cual vamos a atrapar las excepciones del registro de usuario, teniendo en cuenta todas las posibilidades
+    // posibles que hay teniendo en cuenta si el rol existe, el numero de identificacion y el correo
+    async excepcionesRegistroUsuarios(usuario: DatosUsuario): Promise<void> {
+
+        const ExisteIdRol = await this.serivioRol.ExisteIdRol(usuario.idRol);
+
+        const existeIdentificacion = await this.sevicioUsuario.existeIdentificacion(usuario.identificacion, usuario.idUsuario);
+
+        const existeEmail = await this.sevicioUsuario.existeEmail(usuario.correo, usuario.idUsuario);
+
+
+        switch (true) {
+            case ExisteIdRol && existeIdentificacion && existeEmail:
+                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe y la identificación ${usuario.identificacion} ya se encuentra asignada.`);
+            case ExisteIdRol && existeIdentificacion:
+                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe y la identificación ${usuario.identificacion} ya se encuentra asignada.`);
+            case ExisteIdRol && existeEmail:
+                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe y el correo ${usuario.correo} ya se encuentra asociado a un usuario.`);
+            case ExisteIdRol:
+                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe.`);
+            case existeIdentificacion && existeEmail:
+                throw new NotFoundException(`La identificación '${usuario.identificacion}' y el correo ${usuario.correo} ya se encuentran asociados a otro usuario.`);
+            case existeIdentificacion:
+                throw new NotFoundException(`La identificación '${usuario.identificacion}' ya se encuentra asociada a un usuario.`);
+            case existeEmail:
+                throw new NotFoundException(`El correo ${usuario.correo} ya se encuentra asociado a un usuario.`);
+            default:
+        }
     }
 
 }

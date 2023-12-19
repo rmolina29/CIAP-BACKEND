@@ -100,7 +100,7 @@ export class CrudRolService {
 
     }
 
-    async ExisteIdRol(idRol: number) {
+    async ExisteIdRol(idRol: number): Promise<boolean> {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
@@ -114,9 +114,10 @@ export class CrudRolService {
         } catch (error) {
             console.error('problema en la base de datos');
             throw new Error(`error de servidor: ${error}`);
-        } finally {
-            await this.dbConexionServicio.closeConnection();
         }
+        // } finally {
+        //     await this.dbConexionServicio.closeConnection();
+        // }
 
 
     }

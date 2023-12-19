@@ -1,7 +1,11 @@
-import { IsEmail, Matches } from "class-validator";
+import { IsEmail, IsOptional, Matches } from "class-validator";
 import { validacionTipadoNumVacios, validacionTipoStringVacios } from "src/dtoValidation/validacionesGlobalesDto";
 
-export class DatosPersonales {
+export class DatosUsuario {
+
+    @IsOptional()
+    @validacionTipadoNumVacios('el id del del usuario debe ser numerica', 'el id del usuario no pueden estar vacíos')
+    idUsuario?: number;
 
     @validacionTipoStringVacios('los nombres del usuario deben ser string', 'los nombres del usuario no pueden estar vacíos')
     nombres: string;
@@ -9,8 +13,11 @@ export class DatosPersonales {
     @validacionTipoStringVacios('los apellios del usuario deben ser string', 'los apellidos el usuario no pueden estar vacíos')
     apellidos: string;
 
-    @validacionTipadoNumVacios('la identificacion del usuario deben ser numerica', 'la identifiacion el usuario no pueden estar vacíos')
-    identificacion: number;
+    @validacionTipoStringVacios('la identificacion del usuario debe ser string', 'la identifiacion el usuario no pueden estar vacíos')
+    identificacion: string;
+
+    @validacionTipadoNumVacios('el id del rol deben ser numerica', 'el id rol del usuario no pueden estar vacíos')
+    idRol: number;
 
     @validacionTipoStringVacios('el email debe ser un string', 'el correo no debe ir vacio.')
     @IsEmail({}, { message: 'Formato de correo electrónico no válido' })
