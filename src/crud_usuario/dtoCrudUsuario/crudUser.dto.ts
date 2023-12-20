@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, Matches } from "class-validator";
+import { ArrayMinSize, IsEmail, IsIn, IsOptional, Matches } from "class-validator";
 import { validacionTipadoNumVacios, validacionTipoStringVacios } from "src/dtoValidation/validacionesGlobalesDto";
 
 export class DatosUsuario {
@@ -23,4 +23,28 @@ export class DatosUsuario {
     @IsEmail({}, { message: 'Formato de correo electrónico no válido' })
     correo: string;
 
+    @ArrayMinSize(1, { message: 'Debe proporcionar al menos un proyecto' })
+    idProyecto:number[];
+
+}
+export class CuentasUsuario {
+
+    usuario:string;
+    identificacion:string;
+    nombre:string;
+    apellidos:string;
+    correo:string;
+    tipo:string;
+    estado:number;
+
+}
+
+
+export class EstadoUsuario{
+    @validacionTipadoNumVacios('el id del usuario debe ser numerica', 'el id del usuario no pueden estar vacíos')
+    idUsuario:number;
+
+    @validacionTipadoNumVacios('el id del estado del usuario debe ser numerica', 'el id del estado usuario no pueden estar vacíos')
+    @IsIn([0, 1], { message: 'el estado debe ser 0 o 1' })
+    idEstado:number;
 }

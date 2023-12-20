@@ -65,7 +65,7 @@ export class CrudRolService {
             this.conexion = this.dbConexionServicio.getConnection();
 
             //consulta para seleccionar el rol que se va a registrar y verificar si ya existe
-            let sql = `SELECT * FROM usuario_rol `;
+            let sql = `SELECT * FROM usuario_rol`;
 
             let existeRol = await this.conexion.query(sql);
 
@@ -140,6 +140,24 @@ export class CrudRolService {
 
 
     }
+
+    async existeusuarioLigadoRol(idRol: number):Promise<boolean> {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            let sql = `select nombre_usuario from usuario_auth ua where ua.id_rol ='${idRol}'`;
+
+            const rolData = await this.conexion.query(sql);
+
+            return rolData.length > 0;
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error(`error de servidor: ${error}`);
+        }
+    }
+
 }
 
 

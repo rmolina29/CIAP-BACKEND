@@ -27,7 +27,7 @@ export class LoginService {
             correo = correo.trim();
             contrasena = contrasena.trim();
 
-            let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario,ur.tipo as nombre_rol, udp.nombres ,udp.apellidos,udp.correo,urc.estado as estado_contrasena,urc.tipo_contrasena, ua.estado_bloqueo,urc.fechasistema as fechaContrasena
+            let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario,ua.estado as bloqueo_cuenta_usuario,ur.tipo as nombre_rol, udp.nombres ,udp.apellidos,udp.correo,urc.estado as estado_contrasena,urc.tipo_contrasena, ua.estado_bloqueo,urc.fechasistema as fechaContrasena
             FROM usuario_auth ua 
             JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
             JOIN usuario_reg_contrasena urc ON ua.id = urc.id_usuario AND urc.estado = 1

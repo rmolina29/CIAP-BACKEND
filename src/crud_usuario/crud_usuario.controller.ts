@@ -3,8 +3,8 @@ import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
 import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
-import { DatosUsuario } from './dtoCrudUsuario/crudUser.dto';
-import { MensajeAlerta, RespuestaPeticion } from 'src/mensjaes_usuario/mensajes-usuario.enum';
+import { CuentasUsuario, DatosUsuario, EstadoUsuario } from './dtoCrudUsuario/crudUser.dto';
+import { MensajeAlerta, RespuestaPeticion, TipoEstado } from 'src/mensjaes_usuario/mensajes-usuario.enum';
 
 @Controller('/usuario')
 export class CrudUsuarioController {
@@ -82,15 +82,11 @@ export class CrudUsuarioController {
     @Put('/rol/estado')
     async actualizarEstado(@Body() rol: RolEstado, @Res() res: Response) {
         try {
-            const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol)
-
-            if (ExisteIdRol) {
-                throw new NotFoundException(`El id del rol '${rol.idRol}' no existe.`);
-            }
-
+            // validacion de que el usuario le envie un id rol que exista y que valide si hay un usuario ligado con esta id.
+            await this.validacionRolActualizar(rol);
             await this.serivioRol.actualizarEstadoRol(rol);
 
-            const response = rol.estado === 1 ? 'rol activado' : 'rol desactivado';
+            const response = rol.estado === TipoEstado.ACTIVO ? 'rol activado' : 'rol desactivado';
             res.status(HttpStatus.OK).json({
                 status: 'ok',
                 mensaje: 'Rol actualizado',
@@ -100,7 +96,7 @@ export class CrudUsuarioController {
         } catch (error) {
             console.error('Problema en la respuesta del controlador', error.message);
             res.status(error.getStatus()).json({
-                status: 'error',
+                status: 'no',
                 mensaje: error.message,
             });
         }
@@ -122,9 +118,9 @@ export class CrudUsuarioController {
     }
 
     // mostrar todos los usuarios
-    @Get('/listar')
+    @Get('/cuentas-usuario')
     async usuarios(@Res() res: Response) {
-        const obtenerUsuarios: any = await this.sevicioUsuario.obtenerUsuarios();
+        const obtenerUsuarios: CuentasUsuario = await this.sevicioUsuario.obtenerUsuarios();
         res.status(HttpStatus.OK).json(obtenerUsuarios);
     }
 
@@ -134,6 +130,53 @@ export class CrudUsuarioController {
             await this.excepcionesRegistroUsuarios(usuario);
             await this.sevicioUsuario.actualizarUsuarios(usuario);
             res.status(HttpStatus.OK).json({ id: usuario.idUsuario, status: RespuestaPeticion.OK });
+        } catch (error) {
+            console.error(error.message);
+            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+
+    }
+
+    @Put('/actualizar/cuenta')
+    async actualizarEstadoCuenta(@Body() estado: EstadoUsuario, @Res() res: Response) {
+        try {
+            await this.sevicioUsuario.actualizarEstadoUsuario(estado);
+
+            const response = estado.idEstado === TipoEstado.INACTIVO ? 'cuenta de usuario inactiva' : 'cuenta de usuario activa';
+            res.status(HttpStatus.OK).json({
+                status: RespuestaPeticion.OK,
+                mensaje: response,
+            });
+
+        } catch (error) {
+            console.error(error.message);
+            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+
+    }
+
+    @Get('/proyectos')
+    async obtenerListaProyecto(@Res() res: Response) {
+        try {
+            const obtenerProyectos = await this.sevicioUsuario.obtenerProyectosActivos();
+            const proyectosId: number[] = obtenerProyectos.map((proyecto: { id: number; }) => proyecto.id);
+            res.status(HttpStatus.OK).json(obtenerProyectos)
+
+        } catch (error) {
+            console.error(error.message);
+            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+
+    }
+    @Get('/proyectos-de-usuario')
+    async obtenerListaProyectoUsuario(@Body() usuario: any, @Res() res: Response) {
+        try {
+            console.log(usuario);
+            
+            const obtenerProyectosDelUsuario = await this.sevicioUsuario.obtenerProyectosUsuario(usuario.idUsuario);
+            // const proyectosId: number[] = obtenerProyectos.map((proyecto: { id: number; }) => proyecto.id);
+            res.status(HttpStatus.OK).json(obtenerProyectosDelUsuario)
+
         } catch (error) {
             console.error(error.message);
             res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
@@ -169,6 +212,22 @@ export class CrudUsuarioController {
                 throw new NotFoundException(`El correo ${usuario.correo} ya se encuentra asociado a un usuario.`);
             default:
         }
+    }
+
+
+    async validacionRolActualizar(rol: RolEstado) {
+        const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol)
+        const ValidacionRoLigado = await this.serivioRol.existeusuarioLigadoRol(rol.idRol)
+
+        switch (true) {
+            case ExisteIdRol:
+                throw new NotFoundException(`El id del rol '${rol.idRol}' no existe y el rol .`);
+            case ValidacionRoLigado:
+                throw new NotFoundException(`Este rol no se puede deshabilitar, debido a que se encuentra asociad usuarios activos.`);
+
+            default:
+        }
+
     }
 
 }

@@ -3,10 +3,11 @@ import { Response } from 'express';
 import { LoginService } from './login.service';
 import { DataLogin, RespuestaDataUsuario } from './dto_autenticacion/usuario_autenticacion.dto';
 import * as moment from 'moment-timezone';
+import { TipoEstado } from 'src/mensjaes_usuario/mensajes-usuario.enum';
 
 @Controller('/auth')
 export class LoginController {
-    constructor(private readonly servicioLogin: LoginService) {}
+    constructor(private readonly servicioLogin: LoginService) { }
 
     private intentosLogin: number = 0;
     private bloqueoCuenta: number = null;
@@ -39,14 +40,25 @@ export class LoginController {
     }
 
     private async manejoExitosoAutenticacion(datosObjetoUsuario: RespuestaDataUsuario, tiempoRelogin: number): Promise<any> {
-
-        if (datosObjetoUsuario.tipo_contrasena === 0) {
+        console.log(datosObjetoUsuario.bloqueo_cuenta_usuario);
+        
+        if (datosObjetoUsuario.bloqueo_cuenta_usuario === TipoEstado.INACTIVO) {
             return {
                 response: {
                     login: false,
                     status: 'bl',
-                    mensaje: 'El usuario debe cambiar la contraseña antes de iniciar sesion por primera vez.'
+                    mensaje: 'El usuario ha sido desactivado.'
                 }
+            }
+        }
+        else if (datosObjetoUsuario.tipo_contrasena === TipoEstado.CONTRASENA_PRIMERA_VEZ) {
+            return {
+                response: {
+                    login: false,
+                    status: 'pr',
+                    mensaje: 'Debe cambiar contraseña, por primer ingreso a la plataforma.'
+                },
+                data: { id_usuario: datosObjetoUsuario.id_ua },
             }
         }
 

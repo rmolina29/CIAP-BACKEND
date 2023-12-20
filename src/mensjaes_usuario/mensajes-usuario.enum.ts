@@ -5,3 +5,9 @@ export enum MensajeAlerta {
 export enum RespuestaPeticion {
     OK = 'ok'
 }
+
+export enum TipoEstado {
+    INACTIVO = 0,
+    ACTIVO = 1,
+    CONTRASENA_PRIMERA_VEZ = 0
+}

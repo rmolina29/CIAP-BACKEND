@@ -57,6 +57,9 @@ export class RespuestaDataUsuario {
 
     @validacionTipadoNumVacios('el tipo de contraseña debe ser un entero. ', 'el tipo de contraseña no puede estar vacío. ')
     tipo_contrasena: number;
+
+    @validacionTipadoNumVacios('el tipo de bloqueo debe ser un entero. ', 'el tipo de bloqueo no puede estar vacío. ')
+    bloqueo_cuenta_usuario: number;
 }
 
 
