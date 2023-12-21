@@ -1,101 +1,125 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { LoginService } from './login.service';
-import { RespuestaDataUsuario, DataLogin } from './interfaces_auth/usuario_auth_login.interface';
+import { DataLogin, RespuestaDataUsuario } from './dto_autenticacion/usuario_autenticacion.dto';
 import * as moment from 'moment-timezone';
+import { TipoEstado } from 'src/mensjaes_usuario/mensajes-usuario.enum';
 
 @Controller('/auth')
 export class LoginController {
     constructor(private readonly servicioLogin: LoginService) { }
 
-    private intentosLoginContador: number = 0;
-    private lockedUntil: number = null;
+    private intentosLogin: number = 0;
+    private bloqueoCuenta: number = null;
 
 
     @Post('/login')
     async auth(@Body() usuario: DataLogin, @Res() res: Response): Promise<void> {
         try {
-            let respuesta_auth: any;
+            const tiempoRelogin = parseInt(await this.servicioLogin.tiempoRelogin());
+            const respuestaAutenticacion = await this.controlDeAutenticacion(usuario, tiempoRelogin);
 
-            const data_auth_usuario: RespuestaDataUsuario[] = await this.servicioLogin.auth_login(usuario);
-            const data_object_usuario: RespuestaDataUsuario = data_auth_usuario[0];
-
-            if (this.loginExitoso(data_auth_usuario)) {
-                if (await this.usuarioContrasenaCaducada(data_object_usuario.fechaContrasena)) {
-                    respuesta_auth = {
-                        'response': {
-                            login: false,
-                            status: 'ca',
-
-                            mensaje: 'El usuario ha pasado el tiempo de caducidad de contraseña.'
-                        },
-                        'data': {
-                            idUsuario: data_object_usuario.id_ua
-                        }
-                    };
-                }
-
-                // primero validamos si hay una cuenta y si la cuenta esta bloqueada 
-                else if (this.cuentaBloqueada(data_object_usuario)) {
-                    respuesta_auth = {
-                        'response': {
-                            login: false,
-                            status: 'bl',
-                            mensaje: 'Cuenta bloqueada. Intenta nuevamente más tarde.'
-                        }
-                    };
-                }
-                // sino el verificara si el usuario es correcto
-                else {
-                    this.intentosLoginContador = 0;
-                    this.lockedUntil = null;
-                    respuesta_auth = {
-                        'data': data_object_usuario,
-                        'response': { 'status': 'ok', 'mensaje': 'autorizado' }
-                    };
-                }
-
-
-                // si el usuario no existe en la bd entonces retorna que no tiene autorizacion porque las credenciales estan incorrectas
-            } else {
-
-                // sino el usuario es incorrecto tendremos en cuenta si el usuario existe o no, si existe se incrementara un intento fallido 
-
-                const usuarioExiste = await this.servicioLogin.verificarUsuario(usuario);
-                this.intentosLoginContador = usuarioExiste.length > 0 ? this.intentosLoginContador + 1 : 0;
-
-                // aqui se valida si son mas de 3 intentos la cuenta se bloqueara automaticamente, cambiando su estado
-                var cuentaBloqueada = await this.existeCuentaBloqueada()
-
-                if (cuentaBloqueada) {
-                    await this.servicioLogin.cuentaUsuarioBloqueo(usuarioExiste[0].id);
-                    respuesta_auth = {
-                        'response': {
-                            login: false,
-                            status: 'bl',
-                            mensaje: 'Cuenta bloqueada. Intenta nuevamente más tarde.'
-                        }
-                    };
-                } else {
-                    {
-                        respuesta_auth = {
-                            'response': {
-                                login: false,
-                                status: 'no',
-                                mensaje: 'No autorizado'
-                            }
-                        };
-                    }
-                }
-
-            }
-
-            res.json(respuesta_auth);
+            res.json(respuestaAutenticacion);
 
         } catch (error) {
             console.error('Error executing query:', error);
-            res.status(500).json({ mensaje: 'Error executing query' });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query' });
         }
+    }
+
+    private async controlDeAutenticacion(usuario: DataLogin, tiempoRelogin: number): Promise<any> {
+
+        const data_auth_usuario: RespuestaDataUsuario[] = await this.servicioLogin.auth_login(usuario);
+        const datosObjetoUsuario: RespuestaDataUsuario = data_auth_usuario[0];
+
+        if (this.loginExitoso(data_auth_usuario)) {
+            return await this.manejoExitosoAutenticacion(datosObjetoUsuario, tiempoRelogin);
+        } else {
+            return await this.manejoAutenticacionFallida(usuario, tiempoRelogin);
+        }
+    }
+
+    private async manejoExitosoAutenticacion(datosObjetoUsuario: RespuestaDataUsuario, tiempoRelogin: number): Promise<any> {
+        console.log(datosObjetoUsuario.bloqueo_cuenta_usuario);
+        
+        if (datosObjetoUsuario.bloqueo_cuenta_usuario === TipoEstado.INACTIVO) {
+            return {
+                response: {
+                    login: false,
+                    status: 'bl',
+                    mensaje: 'El usuario ha sido desactivado.'
+                }
+            }
+        }
+        else if (datosObjetoUsuario.tipo_contrasena === TipoEstado.CONTRASENA_PRIMERA_VEZ) {
+            return {
+                response: {
+                    login: false,
+                    status: 'pr',
+                    mensaje: 'Debe cambiar contraseña, por primer ingreso a la plataforma.'
+                },
+                data: { id_usuario: datosObjetoUsuario.id_ua },
+            }
+        }
+
+        else if (await this.usuarioContrasenaCaducada(datosObjetoUsuario.fechaContrasena)) {
+            return {
+                response: {
+                    login: false,
+                    status: 'ca',
+                    mensaje: 'El usuario ha superado el tiempo de caducidad de contraseña.',
+                },
+                data: { id_usuario: datosObjetoUsuario.id_ua },
+            };
+
+        }
+        else if (this.cuentaBloqueada(datosObjetoUsuario)) {
+            return {
+                response: {
+                    login: false,
+                    status: 'bl',
+                    mensaje: `Su cuenta ha sido bloqueada. Intente ingresar nuevamente después de transcurridos ${tiempoRelogin} minutos.`,
+                },
+            };
+        } else {
+            this.reseteContadorFallidos();
+            return {
+                data: datosObjetoUsuario,
+                response: { status: 'ok', mensaje: 'autorizado' },
+            };
+        }
+    }
+
+    private async manejoAutenticacionFallida(usuario: DataLogin, tiempoRelogin: number): Promise<any> {
+
+        const usuarioExiste = await this.servicioLogin.verificarUsuario(usuario);
+        this.intentosLogin = usuarioExiste.length > 0 ? this.intentosLogin + 1 : 0;
+        var cuentaBloqueada = await this.existeCuentaBloqueada()
+
+        if (cuentaBloqueada) {
+            await this.servicioLogin.cuentaUsuarioBloqueo(usuarioExiste[0].id)
+            return {
+                response: {
+                    login: false,
+                    status: 'bl',
+                    mensaje: `Su cuenta ha sido bloqueada. Intente ingresar nuevamente después de transcurridos ${tiempoRelogin} minutos.`,
+                },
+            };
+        } else {
+            return {
+                response: {
+                    login: false,
+                    status: 'no',
+                    mensaje: 'No autorizado',
+                },
+            };
+        }
+    }
+
+    // se reinicia cuando el usuario entre exitosamente
+    private reseteContadorFallidos(): void {
+        this.intentosLogin = 0;
+        this.bloqueoCuenta = null;
     }
 
 
@@ -107,7 +131,7 @@ export class LoginController {
         return fechaActualColombia
     }
 
-    // teniendo en cuenta que la caducidad es por meses
+    // En este metodo se utilizara 
     private async usuarioContrasenaCaducada(_fechaContrasena: any): Promise<boolean> {
         let usuarioParametrizacion = await this.servicioLogin.usuarioParametrizacionData()
         let tiempoContrasena = usuarioParametrizacion.data.tiempo_contrasena;
@@ -118,20 +142,21 @@ export class LoginController {
         return mesCaducidadContrasena < fechaActual;
     }
 
+    // se hace la verificacion de que si el usuario esta bloqueado 
     private cuentaBloqueada(dataUsuario: RespuestaDataUsuario): boolean {
         return dataUsuario && dataUsuario.estado_bloqueo === 1;
     }
 
+    // aqui verifiamos el login exitoso del usuario por medio de las credenciales del (correo o usuario) y de la contraseña
     private loginExitoso(dataUsuarios: RespuestaDataUsuario[]): boolean {
         return dataUsuarios.length > 0;
     }
 
+    // aqui a traves de la fecha del bloqueo verificamos si el usuario aun sigue con la cuenta bloqueada o no
     private async existeCuentaBloqueada(): Promise<boolean> {
         let usuarioParametrizacion = await this.servicioLogin.usuarioParametrizacionData()
         let cantidadLoginValidos = usuarioParametrizacion.data.cantidad_login_valido;
-        return this.intentosLoginContador >= cantidadLoginValidos && !this.lockedUntil;
+        return this.intentosLogin >= cantidadLoginValidos && !this.bloqueoCuenta;
     }
-
-
 
 }

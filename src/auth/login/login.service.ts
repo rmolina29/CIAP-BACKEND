@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { DataLogin, DataVerificacionUsuario, RespuestaDataUsuario } from './interfaces_auth/usuario_auth_login.interface';
 import { Connection } from 'mariadb';
 import * as moment from 'moment-timezone';
+import { DataLogin, DataVerificacionUsuario, RespuestaDataUsuario } from './dto_autenticacion/usuario_autenticacion.dto';
 
 
 @Injectable()
@@ -27,7 +27,7 @@ export class LoginService {
             correo = correo.trim();
             contrasena = contrasena.trim();
 
-            let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario,ur.tipo as nombre_rol, udp.nombres ,udp.apellidos,udp.correo,urc.estado as estado_contrasena, ua.estado_bloqueo,urc.fechasistema as fechaContrasena
+            let sql = `SELECT ua.id as id_ua, ua.nombre_usuario, ua.id_rol as id_rol_usuario,ua.estado as bloqueo_cuenta_usuario,ur.tipo as nombre_rol, udp.nombres ,udp.apellidos,udp.correo,urc.estado as estado_contrasena,urc.tipo_contrasena, ua.estado_bloqueo,urc.fechasistema as fechaContrasena
             FROM usuario_auth ua 
             JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
             JOIN usuario_reg_contrasena urc ON ua.id = urc.id_usuario AND urc.estado = 1
@@ -67,6 +67,7 @@ export class LoginService {
                     WHERE udp.correo = '${correo}' or ua.nombre_usuario = '${nombre_usuario}' `;
 
             let dataUsu = await this.conexion.query(sql);
+            
             return dataUsu;
 
 
@@ -78,6 +79,12 @@ export class LoginService {
         }
 
 
+    }
+
+    async tiempoRelogin():Promise<string>{
+        let usuarioParametrizacion = await this.usuarioParametrizacionData()
+        let tiempoRelogin = usuarioParametrizacion.data.tiempo_relogin;
+        return tiempoRelogin
     }
 
     async usuarioParametrizacionData() {

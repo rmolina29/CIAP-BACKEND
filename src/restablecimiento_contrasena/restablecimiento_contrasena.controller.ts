@@ -1,9 +1,9 @@
-import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
 import { RestablecimientoContrasenaService } from './restablecimiento_contrasena.service';
-import { ContrasenaUsuario, DatosToken, email, tokenValidacion } from './restablecimiento_contra.interface/verificacion_correo.interface';
+import { ContrasenaUsuario, DatosToken, email, tokenValidacion } from './restablecimiento_contra.dto/verificacion_correo.dto';
 import { Response } from 'express';
 import { EnvioCorreosService } from './envio_correos/envio_correos.service'
-import { Email } from './envio_correos/email.interface/email.interface';
+import { Email } from './envio_correos/email.dto/email.dto';
 
 @Controller('/auth')
 export class RestablecimientoContrasenaController {
@@ -16,13 +16,12 @@ export class RestablecimientoContrasenaController {
         try {
             const obtener_email: Array<any> = await this.serviceContrasena.email_usuario_existe(mail);
             const datos_usuario = obtener_email[0]
-            const usuario = obtener_email.length > 0
-
-                ? {
+            const usuario = obtener_email.length > 0 ?
+                {
                     'response': { status: 'ok', mensaje: 'autorizado' },
                     'data': datos_usuario
-                }
-                : {
+                } :
+                {
                     'response': {
                         status: 'no',
                         mensaje: 'email incorrecto, no autorizado'
@@ -30,11 +29,11 @@ export class RestablecimientoContrasenaController {
                 };
 
             // estado de la solicitud
-            res.status(200).json(usuario);
+            res.status(HttpStatus.OK).json(usuario);
 
         } catch (error) {
             console.error('Error executing query:', error);
-            res.status(500).json({ mensaje: 'Error executing query' });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query', err: error.message });
 
         }
     }
@@ -65,7 +64,7 @@ export class RestablecimientoContrasenaController {
             let response: any;
 
             if (usuarioToken[0].token === body.tokenUsuario && usuarioToken[0].estado === 0) {
-                await servicioToken.estadoVerificado(body),
+                    await servicioToken.estadoVerificado(body)
                     response = { status: 'ok', mensaje: 'Autorizado' };
             } else if (usuarioToken[0].token != body.tokenUsuario) {
                 response = { status: 'no', mensaje: 'el token es inválido' }

@@ -1,7 +1,7 @@
 import { Injectable, Res } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { Connection } from 'mariadb';
-import { email, ContrasenaUsuario, tokenValidacion, DatosToken } from './restablecimiento_contra.interface/verificacion_correo.interface';
+import { email, ContrasenaUsuario, tokenValidacion, DatosToken } from './restablecimiento_contra.dto/verificacion_correo.dto';
 import * as moment from 'moment-timezone';
 import { Response } from 'express';
 
@@ -184,8 +184,10 @@ export class RestablecimientoContrasenaService {
             let idUsuario = contrasena.idUsuario;
             let nuevContrasena = contrasena.contrasena;
 
+            // el valor tipo de contrasena es igual a 1 ya que le estamos asignando una nueva contraseña lo que signfiica que ya no se encontrara
+            // en estado de primera vez (contraseña que se genera autormaticamente al registrarse)
             let sql = ` 
-                INSERT INTO usuario_reg_contrasena (id_usuario, contrasena) VALUES ('${idUsuario}', '${nuevContrasena}');
+                INSERT INTO usuario_reg_contrasena (id_usuario, contrasena,tipo_contrasena) VALUES ('${idUsuario}', '${nuevContrasena}','1');
             `;
             await this.conexion.query(sql);
 

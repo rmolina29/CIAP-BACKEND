@@ -5,12 +5,11 @@ import { RestablecimientoContrasenaModule } from './restablecimiento_contrasena/
 import { DatabaseModule } from './database/database.module';
 import { LoginModule } from './auth/login/login.module';
 import { EnvioCorreosModule } from './restablecimiento_contrasena/envio_correos/envio_correos.module';
-import { CrudUsuarioService } from './crud_usuario/crud_usuario.service';
 import { CrudUsuarioModule } from './crud_usuario/crud_usuario.module';
 
 @Module({
   imports: [RestablecimientoContrasenaModule, DatabaseModule, LoginModule, EnvioCorreosModule, CrudUsuarioModule],
   controllers: [AppController],
-  providers: [AppService, CrudUsuarioService],
+  providers: [AppService],
 })
 export class AppModule {}
