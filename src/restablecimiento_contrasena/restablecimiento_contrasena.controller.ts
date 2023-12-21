@@ -44,13 +44,15 @@ export class RestablecimientoContrasenaController {
             // esto me retorna el token de 4 digitos y la fecha de expiracion del token
             const datosToken: DatosToken = await this.serviceContrasena.generar_token(usuario_valido.id_usuario);
             //aqui se envia el correo electronico al usuario con el token generado
-            await this.servicioCorreo.envio_correo(usuario_valido, datosToken);
+            let body = this.servicioCorreo.bodyString(datosToken, usuario_valido)
+
+            await this.servicioCorreo.envio_correo(body, usuario_valido.email);
 
             res.status(HttpStatus.OK).json({ mensaje: 'Correo enviado con éxito' });
 
         } catch (error) {
             console.error('Error executing query:', error);
-            res.status(500).json({ mensaje: 'Error executing query' });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query' });
         }
     }
 
@@ -64,8 +66,8 @@ export class RestablecimientoContrasenaController {
             let response: any;
 
             if (usuarioToken[0].token === body.tokenUsuario && usuarioToken[0].estado === 0) {
-                    await servicioToken.estadoVerificado(body)
-                    response = { status: 'ok', mensaje: 'Autorizado' };
+                await servicioToken.estadoVerificado(body)
+                response = { status: 'ok', mensaje: 'Autorizado' };
             } else if (usuarioToken[0].token != body.tokenUsuario) {
                 response = { status: 'no', mensaje: 'el token es inválido' }
 
@@ -115,5 +117,8 @@ export class RestablecimientoContrasenaController {
             res.status(500).json({ mensaje: 'Error executing query' });
         }
     }
+
+
+  
 
 }

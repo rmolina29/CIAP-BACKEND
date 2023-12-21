@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { Connection } from 'mariadb';
 import * as moment from 'moment-timezone';
 import { DataLogin, DataVerificacionUsuario, RespuestaDataUsuario } from './dto_autenticacion/usuario_autenticacion.dto';
+import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
 
 
 @Injectable()
@@ -61,13 +62,13 @@ export class LoginService {
             correo = correo.trim();
 
             let sql = `
-            SELECT ua.id
+            SELECT ua.id,udp.correo,udp.nombres,udp.apellidos
                     FROM usuario_auth ua 
                     JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
                     WHERE udp.correo = '${correo}' or ua.nombre_usuario = '${nombre_usuario}' `;
 
             let dataUsu = await this.conexion.query(sql);
-            
+
             return dataUsu;
 
 
@@ -81,7 +82,7 @@ export class LoginService {
 
     }
 
-    async tiempoRelogin():Promise<string>{
+    async tiempoRelogin(): Promise<string> {
         let usuarioParametrizacion = await this.usuarioParametrizacionData()
         let tiempoRelogin = usuarioParametrizacion.data.tiempo_relogin;
         return tiempoRelogin
@@ -104,21 +105,44 @@ export class LoginService {
         }
     }
 
+    async primerBloqueoUsuario(id_usuario: number): Promise<boolean> {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            const sql = `SELECT estado_bloqueo FROM usuario_auth WHERE id = ${id_usuario} `;
+            const estado = await this.conexion.query(sql);
+            let estadoUsuarioBloqueo = estado[0].estado_bloqueo === 0;
+
+            return estadoUsuarioBloqueo;
+        } catch (error) {
+            console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+            throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+        }
+
+    }
+
     async cuentaUsuarioBloqueo(id_usuario: number) {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
 
-            // estado que se cambia cuando el usuario realizo 3 intentos fallidos
-            let estado = 1;
-
             let fechaDesbloqueo = await this.fecha_bloqueo_usuario()
 
             // se actualiza el estado a usuario bloqueado 
-            let sql = `UPDATE usuario_auth SET estado_bloqueo = '${estado}',tiempo_desbloqueo = '${fechaDesbloqueo}'  WHERE id = '${id_usuario}'`;
+            let sql = `UPDATE usuario_auth SET estado_bloqueo = 1 ,tiempo_desbloqueo = '${fechaDesbloqueo}'  WHERE id = '${id_usuario}' AND estado_bloqueo = 0`;
 
             // se ejecuta el query
-            await this.conexion.query(sql);
+            let actualizacionEstado = await this.conexion.query(sql);
+
+            if (actualizacionEstado.affectedRows > 0) {
+                let fechaBloqueoUsuario = await this.conexion.query(`SELECT tiempo_desbloqueo FROM usuario_auth WHERE id = '${id_usuario}'`);
+                return { 'fechaBloqueo': fechaBloqueoUsuario[0].tiempo_desbloqueo }
+
+            } else {
+                return { 'fechaBloqueo': null }
+            }
+            //se devuelve la fecha hasta cuando fue bloqueada la cuenta
 
         } catch (error) {
             console.error('problema en la base de datos');

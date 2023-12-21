@@ -1,10 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Connection } from 'mariadb';
 import { DatabaseService } from 'src/database/database.service';
-import { CuentasUsuario, DatosUsuario, EstadoUsuario } from './dtoCrudUsuario/crudUser.dto';
+import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectosActivos } from './dtoCrudUsuario/crudUser.dto';
 import { sha256 } from 'js-sha256';
 import * as randomatic from 'randomatic';
-import { MensajeAlerta } from 'src/mensjaes_usuario/mensajes-usuario.enum';
+import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
+import { json } from 'stream/consumers';
 
 @Injectable()
 export class CrudUsuarioService {
@@ -14,7 +15,7 @@ export class CrudUsuarioService {
     private readonly SQL_INSERT_DATOS_PERSONALES = `INSERT INTO usuario_datos_personales (id_usuario, identificacion, nombres, apellidos, correo) VALUES (?, ?, ?, ?, ?)`;
     private readonly SQL_ACTUALIZAR_DATOS_PEROSONALES = `UPDATE usuario_datos_personales SET identificacion = ? ,nombres = ? ,apellidos = ?, correo = ? , ultimo_actualizacion = NOW()  WHERE id_usuario = ?`
     private readonly SQL_ACTUALIZAR_ROL_USUARIO = `UPDATE usuario_auth SET id_rol = ? WHERE id = ?`;
-    private readonly SQL_CUENTAS_USUARIO = `SELECT  ua.nombre_usuario as usuario, udp.identificacion, udp.nombres as nombre, udp.apellidos,udp.correo, ur.tipo ,ua.estado
+    private readonly SQL_CUENTAS_USUARIO = `SELECT ua.id as id_usuario, ua.nombre_usuario as usuario, udp.identificacion, udp.nombres as nombre, udp.apellidos,udp.correo,ur.id as id_rol, ur.tipo as rol ,ua.estado
     FROM usuario_auth ua 
     JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
     JOIN usuario_rol ur ON ua.id_rol = ur.id 
@@ -128,16 +129,20 @@ export class CrudUsuarioService {
     // aqui recibire el objeto completo de Usuario
     async registrarUsuario(usuario: DatosUsuario) { // se realizara la insercion del registro del nombre del usuario y se obtendra el id del usuario para utilizarla en el registro de informacion personal del usuario y la contraseña
         try {
-            const nuevoNombreUsuario = await this.nombreUsuario(usuario);
+            //nombre usuario de la persona que se registrara
+            let nuevoNombreUsuario = await this.nombreUsuario(usuario);
 
-            const nombreUsu = await this.conexion.query(this.SQL_INSERT_USUARIO, [nuevoNombreUsuario, usuario.idRol]);
-            const idUsuario: string = nombreUsu.insertId.toString();
+            let nombreUsu = await this.conexion.query(this.SQL_INSERT_USUARIO, [nuevoNombreUsuario, usuario.idRol]);
+            let idUsuario: string = nombreUsu.insertId.toString();
 
-            await this.registrarContrasena(idUsuario);
+            let contrasenaUsuario = await this.registrarContrasena(idUsuario);
             await this.registroDatosPersonales(idUsuario, usuario);
             await this.registroProyectoUsuario(idUsuario, usuario.idProyecto);
 
-            return idUsuario;
+            let CuerpoHtmlRegistro = this.bodyRegistroUsuario(nuevoNombreUsuario, contrasenaUsuario, usuario)
+
+            return CuerpoHtmlRegistro;
+
         } catch (error) {
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
             throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
@@ -147,9 +152,16 @@ export class CrudUsuarioService {
         }
     }
 
-    async registrarContrasena(usuarioContrasena: string): Promise<void> {
-        const contrasena = this.generarContrasena()[0];
-        await this.conexion.query(this.SQL_INSERT_CONTRASENA, [usuarioContrasena, contrasena]);
+    async registrarContrasena(usuarioContrasena: string): Promise<string> {
+        let contrasenaGeneracion = this.generarContrasena()
+
+        const contrasenaEncriptada = contrasenaGeneracion[0];
+        const contrasenaUsuario = contrasenaGeneracion[1]
+
+        await this.conexion.query(this.SQL_INSERT_CONTRASENA, [usuarioContrasena, contrasenaEncriptada]);
+
+        // se le envia la contrasena no encriptada para usarla en la autenticacion
+        return contrasenaUsuario;
     }
 
     async registroDatosPersonales(idUsuario: string, usuario: DatosUsuario): Promise<void> {
@@ -163,13 +175,79 @@ export class CrudUsuarioService {
         return [contrasenaEncriptada, generacionContrasena]
     }
 
-    //validacion de comprobar si existe un proyecto
-    async existeProyecto(idProyectos: number[], idProyectosExistentes: number[]): Promise<boolean> {
-        const comparacion = idProyectosExistentes.map((elemento1, indice) => elemento1 === idProyectos[indice]);
-        const existeProyectos = comparacion.every(valor => valor === true);
+    bodyRegistroUsuario(nombreUsuario: string, contrasena: string, datosUsuario: DatosUsuario) {
+        return `
+        <div class="container">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col"></div>
+                                <div class="col-10">
+                                    <div class="card boderCus">
+                                        <div class="card-body">
+                                            <h5 class="card-title TitleCus text-center">
+                                            Credenciales de acceso - CIAP
+                                            </h5>
+                                            <p class="card-text Saludo">
+                                                <span id="Saludo">Buen día,</span>
+                                                <span id="user" class="nameUser">${datosUsuario.nombres} ${datosUsuario.apellidos}</span>
+                                                <span>Reciba un cordial saludo.</span>
+                                            </p>
+                                            <p class="card-text mensaje">
+                                                A continuación, le enviamos sus credenciales de acceso a la plataforma CIAP:
+                                            </p>
 
-        console.log(comparacion);
-        console.log(existeProyectos);
+                                        
+                                            <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
+                                                data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
+                                                <span class="btnSpaCuston">Usuario: ${nombreUsuario}</span>
+                                            </button>
+
+                                            <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
+                                                data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
+                                                <span class="btnSpaCuston">Contraseña: ${contrasena}</span>
+                                            </button>
+                
+                                            <br>
+
+                                            <p class="">
+                                            Al ingresar al sistema, le solicitaremos el cambio de contraseña. 
+                                            Debe tener en cuenta las políticas de seguridad que se le indicarán.
+                                            </p>
+
+                                            <br>
+                                            <br>
+
+                                            <p class="">
+                                            Para acceder a la plataforma CIAP, haga clic <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
+                                            href="https://chat.openai.com/c/5d2dcf31-8c31-42bc-bb52-3560974570fb"  data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
+                                            <span class="btnSpaCuston">click</span>
+                                        </button>
+                                            </p>
+                
+                                            <p class="note">
+                                                Este mensaje de correo se le ha enviado de forma automática.
+                                                Por favor, no intente enviar correos a la dirección de este
+                                                mensaje.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                             
+                            </div>
+                        </div>
+                    </div>
+
+                    </div>
+     `
+    }
+
+    //validacion de comprobar si existe un proyecto
+    async existeProyecto(idProyectos: number[]): Promise<boolean> {
+
+        let obtenerProyectos = await this.obtenerProyectosActivos();
+        let idProyectosExistentes: number[] = obtenerProyectos.map((proyecto: { id: number; }) => proyecto.id);
+
+        const existeProyectos = idProyectos.every(elemento => idProyectosExistentes.includes(elemento));
 
         return existeProyectos
     }
@@ -214,6 +292,22 @@ export class CrudUsuarioService {
             await this.dbConexionServicio.closeConnection();
         }
     }
+    async obtenerUsuariosPorId(): Promise<CuentasUsuario> {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+            // se actualizara la informacion de datos personales 
+            const usuarios = await this.conexion.query(this.SQL_CUENTAS_USUARIO);
+            // se actualiza el rol
+            return usuarios
+
+        } catch (error) {
+            console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+            throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+        } finally {
+            await this.dbConexionServicio.closeConnection();
+        }
+    }
 
 
     async obtenerProyectosUsuario(idUsuario: number) {
@@ -221,7 +315,7 @@ export class CrudUsuarioService {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
             // se actualizara la informacion de datos personales 
-            const usuarioProyectos = await this.conexion.query(this.SQL_SELECT_PROYECTOS_POR_USUARIO,[idUsuario]);
+            const usuarioProyectos = await this.conexion.query(this.SQL_SELECT_PROYECTOS_POR_USUARIO, [idUsuario]);
             // se actualiza el rol
             return usuarioProyectos
 
@@ -273,7 +367,7 @@ export class CrudUsuarioService {
         await this.conexion.query(this.SQL_ACTUALIZAR_ROL_USUARIO, [idRol, idUsuario]);
     }
 
-    async obtenerProyectosActivos(): Promise<any> {
+    async obtenerProyectosActivos(): Promise<ProyectosActivos> {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();

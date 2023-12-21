@@ -62,4 +62,10 @@ export class RespuestaDataUsuario {
     bloqueo_cuenta_usuario: number;
 }
 
+export class datosObjetoCuerpoHtml{
+    tiempoRelogin:number;
+    fechaBloqueo:string;
+    cantidadLoginValidos:number;
+
+}
 

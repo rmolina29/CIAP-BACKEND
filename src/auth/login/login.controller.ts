@@ -1,13 +1,14 @@
 import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { LoginService } from './login.service';
-import { DataLogin, RespuestaDataUsuario } from './dto_autenticacion/usuario_autenticacion.dto';
+import { DataLogin, RespuestaDataUsuario, datosObjetoCuerpoHtml } from './dto_autenticacion/usuario_autenticacion.dto';
 import * as moment from 'moment-timezone';
-import { TipoEstado } from 'src/mensjaes_usuario/mensajes-usuario.enum';
+import { MensajeAlerta, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
+import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
 
 @Controller('/auth')
 export class LoginController {
-    constructor(private readonly servicioLogin: LoginService) { }
+    constructor(private readonly servicioLogin: LoginService, private readonly servicioEnvioCorreo: EnvioCorreosService) { }
 
     private intentosLogin: number = 0;
     private bloqueoCuenta: number = null;
@@ -18,12 +19,11 @@ export class LoginController {
         try {
             const tiempoRelogin = parseInt(await this.servicioLogin.tiempoRelogin());
             const respuestaAutenticacion = await this.controlDeAutenticacion(usuario, tiempoRelogin);
-
             res.json(respuestaAutenticacion);
 
         } catch (error) {
-            console.error('Error executing query:', error);
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: 'Error executing query' });
+            console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+            throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
         }
     }
 
@@ -40,8 +40,7 @@ export class LoginController {
     }
 
     private async manejoExitosoAutenticacion(datosObjetoUsuario: RespuestaDataUsuario, tiempoRelogin: number): Promise<any> {
-        console.log(datosObjetoUsuario.bloqueo_cuenta_usuario);
-        
+
         if (datosObjetoUsuario.bloqueo_cuenta_usuario === TipoEstado.INACTIVO) {
             return {
                 response: {
@@ -94,27 +93,52 @@ export class LoginController {
 
         const usuarioExiste = await this.servicioLogin.verificarUsuario(usuario);
         this.intentosLogin = usuarioExiste.length > 0 ? this.intentosLogin + 1 : 0;
-        var cuentaBloqueada = await this.existeCuentaBloqueada()
+        let cuentaBloqueada = await this.existeCuentaBloqueada()
 
-        if (cuentaBloqueada) {
-            await this.servicioLogin.cuentaUsuarioBloqueo(usuarioExiste[0].id)
-            return {
-                response: {
-                    login: false,
-                    status: 'bl',
-                    mensaje: `Su cuenta ha sido bloqueada. Intente ingresar nuevamente después de transcurridos ${tiempoRelogin} minutos.`,
-                },
-            };
-        } else {
+        if (!cuentaBloqueada) {
             return {
                 response: {
                     login: false,
                     status: 'no',
                     mensaje: 'No autorizado',
-                },
-            };
+                }
+
+            }
+        }
+
+        let datosUsuario = usuarioExiste[0]
+        let idUsuario = datosUsuario.id;
+
+        // se envia el correo a la persona señalando que su cuenta ha sido bloqueada
+        if (await this.servicioLogin.primerBloqueoUsuario(idUsuario)) {
+             // se hace el bloqueo del usuario
+            let usuarioBloqueo = await this.servicioLogin.cuentaUsuarioBloqueo(idUsuario)
+            let usuarioParametrizacion = await this.servicioLogin.usuarioParametrizacionData()
+            let cantidadLoginValidos = usuarioParametrizacion.data.cantidad_login_valido;
+
+            let datosObjetoCuerpoHtml: datosObjetoCuerpoHtml = {
+                tiempoRelogin,
+                fechaBloqueo: usuarioBloqueo.fechaBloqueo,
+                cantidadLoginValidos
+            }
+
+            // se obtiene el cuerpo que se le enviara al correo pór medio del servicio
+            let bodyCorreo = this.servicioEnvioCorreo.cuerpoHtmlCuentaBloqueada(datosUsuario, datosObjetoCuerpoHtml)
+            this.servicioEnvioCorreo.envio_correo(bodyCorreo, datosUsuario.correo);
+           
+        }
+
+        return {
+            response: {
+                login: false,
+                status: 'bl',
+                mensaje: `Su cuenta ha sido bloqueada. Intente ingresar nuevamente después de transcurridos ${tiempoRelogin} minutos.`,
+            },
         }
     }
+
+
+
 
     // se reinicia cuando el usuario entre exitosamente
     private reseteContadorFallidos(): void {

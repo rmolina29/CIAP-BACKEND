@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { Response } from 'express';
+import { datosObjetoCuerpoHtml } from 'src/auth/login/dto_autenticacion/usuario_autenticacion.dto'; 
 import { DatosToken } from '../restablecimiento_contra.dto/verificacion_correo.dto';
 import { Email } from './email.dto/email.dto';
+
 
 @Injectable()
 export class EnvioCorreosService {
@@ -21,7 +23,7 @@ export class EnvioCorreosService {
         })
     }
     // colocar privado
-    async envio_correo(usuarioEnvio: Email, datosToken: DatosToken) {
+    async envio_correo(bodyString: string, correo: string) {
 
         let res: Response;
         // Lee el contenido HTML del archivo
@@ -29,7 +31,7 @@ export class EnvioCorreosService {
 
             let body = {
                 from: process.env.MAIL_USER, // Remitente
-                to: usuarioEnvio.email, // Destinatario
+                to: correo, // Destinatario
                 subject: "Nuevo mensaje para el usuario", // Asunto del correo
                 html: `
                 <!DOCTYPE html>
@@ -154,7 +156,72 @@ export class EnvioCorreosService {
                 
                 
                 <body>
-                    <div class="container">
+                   ${bodyString}
+                </body>
+                
+                </html>`,
+
+            };
+
+            this.transportador.sendMail(body);
+
+        } catch (error) {
+            console.error('Error al enviar correo:', error);
+            res.status(500).json({ mensaje: 'Hemos tenido un problema al enviar el correo' });
+        }
+
+    }
+
+    // Este cuerpo es dedicado para el envio de la informacion de la cuenta bloqueada
+    cuerpoHtmlCuentaBloqueada(datosUsuario: any,datosObjetoCuerpoHtml:datosObjetoCuerpoHtml): string {
+        return `
+        <div class="container">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col"></div>
+                                <div class="col-10">
+                                    <div class="card boderCus">
+                                        <div class="card-body">
+                                            <h5 class="card-title TitleCus text-center">
+                                                Bloqueo de cuenta
+                                            </h5>
+                                            <p class="card-text Saludo">
+                                                <span id="Saludo">Buen día,</span>
+                                                <span id="user" class="nameUser">${datosUsuario.nombres} ${datosUsuario.apellidos}</span>
+                                            </p>
+                                            <br>
+                                            <br>
+                                            <p class="card-text mensaje">
+                                             Se le informa que se ha bloqueado su cuenta, despues de tres (3) intentos fallidos de acceso incorrecto.
+                                             ${datosObjetoCuerpoHtml.tiempoRelogin} minutos a partir de la recepcion de este correo.
+                                            </p>
+
+                                            <br>
+
+                                            <p class="card-text mensaje">
+                                                la cuenta se desbloqueará el <strong>${datosObjetoCuerpoHtml.fechaBloqueo}</strong>
+                                            </p>
+                
+                                            <p class="note">
+                                                Este mensaje de correo se le ha enviado de forma automática.
+                                                Por favor, no intente enviar correos a la dirección de este
+                                                mensaje.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                             
+                            </div>
+                        </div>
+                    </div>
+                </div>
+     `
+    }
+
+
+    bodyString(datosToken: DatosToken, usuario_valido: Email) {
+        return `
+        <div class="container">
                         <div class="container">
                             <div class="row">
                                 <div class="col"></div>
@@ -166,7 +233,7 @@ export class EnvioCorreosService {
                                             </h5>
                                             <p class="card-text Saludo">
                                                 <span id="Saludo">Buen día,</span>
-                                                <span id="user" class="nameUser">${usuarioEnvio.nombres} ${usuarioEnvio.apellidos}</span>
+                                                <span id="user" class="nameUser">${usuario_valido.nombres} ${usuario_valido.apellidos}</span>
                                             </p>
                                             <p class="card-text mensaje">
                                                 Para continuar con el proceso de recuperación de contraseña,
@@ -194,19 +261,6 @@ export class EnvioCorreosService {
                     </div>
 
                     </div>
-                
-                </body>
-                
-                </html>`,
-
-            };
-
-            this.transportador.sendMail(body);
-
-        } catch (error) {
-            console.error('Error al enviar correo:', error);
-            res.status(500).json({ mensaje: 'Hemos tenido un problema al enviar el correo' });
-        }
-
+     `
     }
 }

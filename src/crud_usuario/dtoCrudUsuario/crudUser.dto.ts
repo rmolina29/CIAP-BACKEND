@@ -48,3 +48,19 @@ export class EstadoUsuario{
     @IsIn([0, 1], { message: 'el estado debe ser 0 o 1' })
     idEstado:number;
 }
+export class ProyectoIdUsuario{
+    @validacionTipadoNumVacios('el id del usuario debe ser numerica', 'el id del usuario no pueden estar vacíos')
+    idUsuario:number;
+}
+
+export class ProyectosActivos{
+    map(arg0: (proyecto: { id: number; }) => number): number[] {
+        throw new Error('Method not implemented.');
+    }
+    
+    @validacionTipadoNumVacios('el id del proyecto debe ser numerica', 'el id del proyecto no pueden estar vacíos')
+    idProyecto:number;
+
+    @validacionTipoStringVacios('el nombre del proyecto debe ser un string', 'el nombre del proyecto no debe ir vacio.')
+    nombreProyetco:string;
+}

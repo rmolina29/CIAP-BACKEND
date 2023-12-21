@@ -3,13 +3,14 @@ import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
 import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
-import { CuentasUsuario, DatosUsuario, EstadoUsuario } from './dtoCrudUsuario/crudUser.dto';
-import { MensajeAlerta, RespuestaPeticion, TipoEstado } from 'src/mensjaes_usuario/mensajes-usuario.enum';
+import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectoIdUsuario } from './dtoCrudUsuario/crudUser.dto';
+import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
+import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
 
 @Controller('/usuario')
 export class CrudUsuarioController {
 
-    constructor(private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService) { }
+    constructor(private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService, private readonly servicioEnvioCorreo: EnvioCorreosService) { }
     // crud de roles 
 
     // se obtienen todos los roles que estan registrados
@@ -103,18 +104,18 @@ export class CrudUsuarioController {
     }
 
     // crud de usuarios
-    // Se registrara el usuario
+    // Se registrara el usuario, rol asignado al usuario y proyectos
     @Post('/registrar')
     async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
             await this.excepcionesRegistroUsuarios(usuario);
-            const idUsuarioInsert = await this.sevicioUsuario.registrarUsuario(usuario);
-            res.status(HttpStatus.OK).json({ id: idUsuarioInsert, status: RespuestaPeticion.OK });
+            const htmlCuerpo = await this.sevicioUsuario.registrarUsuario(usuario);
+            this.servicioEnvioCorreo.envio_correo(htmlCuerpo, usuario.correo);
+            res.status(HttpStatus.OK).json({ mensaje: RegistroUsuario.EXITOSO, status: RespuestaPeticion.OK });
         } catch (error) {
             console.error('Error executing query:', error.message);
             res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
-
     }
 
     // mostrar todos los usuarios
@@ -159,7 +160,6 @@ export class CrudUsuarioController {
     async obtenerListaProyecto(@Res() res: Response) {
         try {
             const obtenerProyectos = await this.sevicioUsuario.obtenerProyectosActivos();
-            const proyectosId: number[] = obtenerProyectos.map((proyecto: { id: number; }) => proyecto.id);
             res.status(HttpStatus.OK).json(obtenerProyectos)
 
         } catch (error) {
@@ -169,12 +169,9 @@ export class CrudUsuarioController {
 
     }
     @Get('/proyectos-de-usuario')
-    async obtenerListaProyectoUsuario(@Body() usuario: any, @Res() res: Response) {
+    async obtenerListaProyectoUsuario(@Body() usuario: ProyectoIdUsuario, @Res() res: Response) {
         try {
-            console.log(usuario);
-            
             const obtenerProyectosDelUsuario = await this.sevicioUsuario.obtenerProyectosUsuario(usuario.idUsuario);
-            // const proyectosId: number[] = obtenerProyectos.map((proyecto: { id: number; }) => proyecto.id);
             res.status(HttpStatus.OK).json(obtenerProyectosDelUsuario)
 
         } catch (error) {
@@ -184,38 +181,43 @@ export class CrudUsuarioController {
 
     }
 
-    // aqui se hara la validaciones la cual vamos a atrapar las excepciones del registro de usuario, teniendo en cuenta todas las posibilidades
-    // posibles que hay teniendo en cuenta si el rol existe, el numero de identificacion y el correo
-    async excepcionesRegistroUsuarios(usuario: DatosUsuario): Promise<void> {
-
-        const ExisteIdRol = await this.serivioRol.ExisteIdRol(usuario.idRol);
-
-        const existeIdentificacion = await this.sevicioUsuario.existeIdentificacion(usuario.identificacion, usuario.idUsuario);
-
-        const existeEmail = await this.sevicioUsuario.existeEmail(usuario.correo, usuario.idUsuario);
-
-
-        switch (true) {
-            case ExisteIdRol && existeIdentificacion && existeEmail:
-                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe y la identificación ${usuario.identificacion} ya se encuentra asignada.`);
-            case ExisteIdRol && existeIdentificacion:
-                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe y la identificación ${usuario.identificacion} ya se encuentra asignada.`);
-            case ExisteIdRol && existeEmail:
-                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe y el correo ${usuario.correo} ya se encuentra asociado a un usuario.`);
-            case ExisteIdRol:
-                throw new NotFoundException(`El id del rol '${usuario.idRol}' no existe.`);
-            case existeIdentificacion && existeEmail:
-                throw new NotFoundException(`La identificación '${usuario.identificacion}' y el correo ${usuario.correo} ya se encuentran asociados a otro usuario.`);
-            case existeIdentificacion:
-                throw new NotFoundException(`La identificación '${usuario.identificacion}' ya se encuentra asociada a un usuario.`);
-            case existeEmail:
-                throw new NotFoundException(`El correo ${usuario.correo} ya se encuentra asociado a un usuario.`);
-            default:
+    async validarIdRol(idRol: number): Promise<void> {
+        const existeIdRol = await this.serivioRol.ExisteIdRol(idRol);
+        if (existeIdRol) {
+            throw new NotFoundException(`El id del rol '${idRol}' no existe.`);
         }
     }
 
+    async validarIdentificacion(identificacion: string, idUsuario: number): Promise<void> {
+        const existeIdentificacion = await this.sevicioUsuario.existeIdentificacion(identificacion, idUsuario);
+        if (existeIdentificacion) {
+            throw new NotFoundException(`La identificación '${identificacion}' ya se encuentra asociada a un usuario.`);
+        }
+    }
 
-    async validacionRolActualizar(rol: RolEstado) {
+    async validarEmail(correo: string, idUsuario: number): Promise<void> {
+        const existeEmail = await this.sevicioUsuario.existeEmail(correo, idUsuario);
+        if (existeEmail) {
+            throw new NotFoundException(`El correo '${correo}' ya se encuentra asociado a un usuario.`);
+        }
+    }
+
+    async validarProyecto(idProyecto: number[]): Promise<void> {
+        const existeProyecto = await this.sevicioUsuario.existeProyecto(idProyecto);
+        if (!existeProyecto) {
+            throw new NotFoundException('Por favor, verifique que los proyectos existan.');
+        }
+    }
+
+    async excepcionesRegistroUsuarios(usuario: DatosUsuario): Promise<void> {
+        await this.validarIdRol(usuario.idRol);
+        await this.validarIdentificacion(usuario.identificacion, usuario.idUsuario);
+        await this.validarEmail(usuario.correo, usuario.idUsuario);
+        await this.validarProyecto(usuario.idProyecto);
+    }
+
+
+    async validacionRolActualizar(rol: RolEstado):Promise<void> {
         const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol)
         const ValidacionRoLigado = await this.serivioRol.existeusuarioLigadoRol(rol.idRol)
 
@@ -224,7 +226,6 @@ export class CrudUsuarioController {
                 throw new NotFoundException(`El id del rol '${rol.idRol}' no existe y el rol .`);
             case ValidacionRoLigado:
                 throw new NotFoundException(`Este rol no se puede deshabilitar, debido a que se encuentra asociad usuarios activos.`);
-
             default:
         }
 

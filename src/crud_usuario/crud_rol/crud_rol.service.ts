@@ -65,7 +65,7 @@ export class CrudRolService {
             this.conexion = this.dbConexionServicio.getConnection();
 
             //consulta para seleccionar el rol que se va a registrar y verificar si ya existe
-            let sql = `SELECT * FROM usuario_rol`;
+            let sql = `SELECT * FROM usuario_rol WHERE estado = 1`;
 
             let existeRol = await this.conexion.query(sql);
 
