@@ -3,7 +3,7 @@ import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
 import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
-import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectoIdUsuario } from './dtoCrudUsuario/crudUser.dto';
+import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectoIdUsuario, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
 import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
 
@@ -109,13 +109,30 @@ export class CrudUsuarioController {
     async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
             await this.excepcionesRegistroUsuarios(usuario);
-            const htmlCuerpo = await this.sevicioUsuario.registrarUsuario(usuario);
-            this.servicioEnvioCorreo.envio_correo(htmlCuerpo, usuario.correo);
+
+            const datosUsuario = await this.sevicioUsuario.registrarUsuario(usuario);
+            const htmlCuerpoRegistro = this.servicioEnvioCorreo.CuerpoRegistroUsuario(datosUsuario.nuevoNombreUsuario, datosUsuario.contrasenaUsuario, usuario);
+            this.servicioEnvioCorreo.envio_correo(htmlCuerpoRegistro, usuario.correo);
+
             res.status(HttpStatus.OK).json({ mensaje: RegistroUsuario.EXITOSO, status: RespuestaPeticion.OK });
         } catch (error) {
             console.error('Error executing query:', error.message);
             res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
+    }
+
+    @Put('/actualizar')
+    async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
+        try {
+            await this.excepcionesRegistroUsuarios(usuario);
+            await this.sevicioUsuario.actualizarUsuarios(usuario);
+
+            res.status(HttpStatus.OK).json({ id: usuario.idUsuario,mensaje:"usuario actualizado exitosamente.", status: RespuestaPeticion.OK });
+        } catch (error) {
+            console.error(error.message);
+            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+
     }
 
     // mostrar todos los usuarios
@@ -124,20 +141,14 @@ export class CrudUsuarioController {
         const obtenerUsuarios: CuentasUsuario = await this.sevicioUsuario.obtenerUsuarios();
         res.status(HttpStatus.OK).json(obtenerUsuarios);
     }
-
-    @Put('/actualizar')
-    async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
-        try {
-            await this.excepcionesRegistroUsuarios(usuario);
-            await this.sevicioUsuario.actualizarUsuarios(usuario);
-            res.status(HttpStatus.OK).json({ id: usuario.idUsuario, status: RespuestaPeticion.OK });
-        } catch (error) {
-            console.error(error.message);
-            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
-        }
-
+    // mostrar todos los usuarios
+    @Get('/cuenta-usuario')
+    async usuario(@Body() usuario:UsuarioId,@Res() res: Response) {
+        const obtenerUsuario: CuentasUsuario = await this.sevicioUsuario.obtenerUsuario(usuario.id);
+        res.status(HttpStatus.OK).json(obtenerUsuario);
     }
 
+    // desactiva y activa cuenta del usuario
     @Put('/actualizar/cuenta')
     async actualizarEstadoCuenta(@Body() estado: EstadoUsuario, @Res() res: Response) {
         try {
@@ -217,7 +228,7 @@ export class CrudUsuarioController {
     }
 
 
-    async validacionRolActualizar(rol: RolEstado):Promise<void> {
+    async validacionRolActualizar(rol: RolEstado): Promise<void> {
         const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol)
         const ValidacionRoLigado = await this.serivioRol.existeusuarioLigadoRol(rol.idRol)
 

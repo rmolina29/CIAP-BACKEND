@@ -44,7 +44,7 @@ export class RestablecimientoContrasenaController {
             // esto me retorna el token de 4 digitos y la fecha de expiracion del token
             const datosToken: DatosToken = await this.serviceContrasena.generar_token(usuario_valido.id_usuario);
             //aqui se envia el correo electronico al usuario con el token generado
-            let body = this.servicioCorreo.bodyString(datosToken, usuario_valido)
+            let body = this.servicioCorreo.CuerpoTokenUsuario(datosToken, usuario_valido)
 
             await this.servicioCorreo.envio_correo(body, usuario_valido.email);
 

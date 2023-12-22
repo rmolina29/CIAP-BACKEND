@@ -38,6 +38,10 @@ export class CuentasUsuario {
     estado:number;
 
 }
+export class UsuarioId {
+    @validacionTipadoNumVacios('el id del del usuario debe ser numerica', 'el id del usuario no pueden estar vacíos')
+    id: number;
+}
 
 
 export class EstadoUsuario{

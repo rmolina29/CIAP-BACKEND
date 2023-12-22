@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { datosObjetoCuerpoHtml } from 'src/auth/login/dto_autenticacion/usuario_autenticacion.dto'; 
 import { DatosToken } from '../restablecimiento_contra.dto/verificacion_correo.dto';
 import { Email } from './email.dto/email.dto';
+import { DatosUsuario } from 'src/crud_usuario/dtoCrudUsuario/crudUser.dto';
 
 
 @Injectable()
@@ -192,7 +193,7 @@ export class EnvioCorreosService {
                                             <br>
                                             <br>
                                             <p class="card-text mensaje">
-                                             Se le informa que se ha bloqueado su cuenta, despues de tres (3) intentos fallidos de acceso incorrecto.
+                                             Se le informa que se ha bloqueado su cuenta, despues de tres (${datosObjetoCuerpoHtml.cantidadLoginValidos}) intentos fallidos de acceso incorrecto.
                                              ${datosObjetoCuerpoHtml.tiempoRelogin} minutos a partir de la recepcion de este correo.
                                             </p>
 
@@ -219,7 +220,7 @@ export class EnvioCorreosService {
     }
 
 
-    bodyString(datosToken: DatosToken, usuario_valido: Email) {
+    CuerpoTokenUsuario(datosToken: DatosToken, usuario_valido: Email) {
         return `
         <div class="container">
                         <div class="container">
@@ -246,6 +247,72 @@ export class EnvioCorreosService {
                 
                                             <br>
                                             <p id="contador">El código expira el <b>${datosToken.fechaExpiracion}</b></p>
+                
+                                            <p class="note">
+                                                Este mensaje de correo se le ha enviado de forma automática.
+                                                Por favor, no intente enviar correos a la dirección de este
+                                                mensaje.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                             
+                            </div>
+                        </div>
+                    </div>
+
+                    </div>
+     `
+    }
+
+    CuerpoRegistroUsuario(nombreUsuario: string, contrasena: string, datosUsuario: DatosUsuario) {
+        return `
+        <div class="container">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col"></div>
+                                <div class="col-10">
+                                    <div class="card boderCus">
+                                        <div class="card-body">
+                                            <h5 class="card-title TitleCus text-center">
+                                            Credenciales de acceso - CIAP
+                                            </h5>
+                                            <p class="card-text Saludo">
+                                                <span id="Saludo">Buen día,</span>
+                                                <span id="user" class="nameUser">${datosUsuario.nombres} ${datosUsuario.apellidos}</span>
+                                                <span>Reciba un cordial saludo.</span>
+                                            </p>
+                                            <p class="card-text mensaje">
+                                                A continuación, le enviamos sus credenciales de acceso a la plataforma CIAP:
+                                            </p>
+
+                                        
+                                            <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
+                                                data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
+                                                <span class="btnSpaCuston">Usuario: ${nombreUsuario}</span>
+                                            </button>
+
+                                            <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
+                                                data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
+                                                <span class="btnSpaCuston">Contraseña: ${contrasena}</span>
+                                            </button>
+                
+                                            <br>
+
+                                            <p class="">
+                                            Al ingresar al sistema, le solicitaremos el cambio de contraseña. 
+                                            Debe tener en cuenta las políticas de seguridad que se le indicarán.
+                                            </p>
+
+                                            <br>
+                                            <br>
+
+                                            <p class="">
+                                            Para acceder a la plataforma CIAP, haga clic <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
+                                            href="https://chat.openai.com/c/5d2dcf31-8c31-42bc-bb52-3560974570fb"  data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
+                                            <span class="btnSpaCuston">click</span>
+                                        </button>
+                                            </p>
                 
                                             <p class="note">
                                                 Este mensaje de correo se le ha enviado de forma automática.

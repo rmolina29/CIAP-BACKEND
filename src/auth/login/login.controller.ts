@@ -30,9 +30,10 @@ export class LoginController {
     private async controlDeAutenticacion(usuario: DataLogin, tiempoRelogin: number): Promise<any> {
 
         const data_auth_usuario: RespuestaDataUsuario[] = await this.servicioLogin.auth_login(usuario);
-        const datosObjetoUsuario: RespuestaDataUsuario = data_auth_usuario[0];
 
         if (this.loginExitoso(data_auth_usuario)) {
+            // si el usuario existe le asigna la infromacion que contiene 
+            const datosObjetoUsuario: RespuestaDataUsuario = data_auth_usuario[0];
             return await this.manejoExitosoAutenticacion(datosObjetoUsuario, tiempoRelogin);
         } else {
             return await this.manejoAutenticacionFallida(usuario, tiempoRelogin);
@@ -111,7 +112,7 @@ export class LoginController {
 
         // se envia el correo a la persona señalando que su cuenta ha sido bloqueada
         if (await this.servicioLogin.primerBloqueoUsuario(idUsuario)) {
-             // se hace el bloqueo del usuario
+            // se hace el bloqueo del usuario
             let usuarioBloqueo = await this.servicioLogin.cuentaUsuarioBloqueo(idUsuario)
             let usuarioParametrizacion = await this.servicioLogin.usuarioParametrizacionData()
             let cantidadLoginValidos = usuarioParametrizacion.data.cantidad_login_valido;
@@ -125,7 +126,7 @@ export class LoginController {
             // se obtiene el cuerpo que se le enviara al correo pór medio del servicio
             let bodyCorreo = this.servicioEnvioCorreo.cuerpoHtmlCuentaBloqueada(datosUsuario, datosObjetoCuerpoHtml)
             this.servicioEnvioCorreo.envio_correo(bodyCorreo, datosUsuario.correo);
-           
+
         }
 
         return {

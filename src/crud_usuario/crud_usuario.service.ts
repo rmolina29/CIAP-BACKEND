@@ -1,11 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Connection } from 'mariadb';
 import { DatabaseService } from 'src/database/database.service';
-import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectosActivos } from './dtoCrudUsuario/crudUser.dto';
+import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectosActivos, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
 import { sha256 } from 'js-sha256';
 import * as randomatic from 'randomatic';
 import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
-import { json } from 'stream/consumers';
+import { isEqual } from 'lodash';
 
 @Injectable()
 export class CrudUsuarioService {
@@ -21,12 +21,21 @@ export class CrudUsuarioService {
     JOIN usuario_rol ur ON ua.id_rol = ur.id 
     ORDER BY ua.id;`;
 
+    private readonly SQL_CUENTAS_USUARIO_POR_ID = `  SELECT ua.id as id_usuario, ua.nombre_usuario as usuario, udp.identificacion, udp.nombres as nombre, udp.apellidos,udp.correo,ur.id as id_rol, ur.tipo as rol ,ua.estado
+    FROM usuario_auth ua 
+    JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
+    JOIN usuario_rol ur ON ua.id_rol = ur.id 
+    WHERE id_usuario = ?
+    ORDER BY ua.id;`;
+
     private readonly SQL_ACTUALIZAR_ESTADO_CUENTA = "UPDATE usuario_auth set estado = ? WHERE id = ?"
 
     private readonly SQL_SELECT_PROYECTOS_POR_USUARIO = `SELECT up.proyecto_id,p.nombre 
                                                         FROM usuario_proyecto up
                                                         JOIN proyecto p ON up.proyecto_id = p.id 
                                                         WHERE  up.usuario_id  = ? AND up.estado = 1;`
+
+    private readonly SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO = `UPDATE usuario_proyecto SET estado = 0 WHERE usuario_id = ?;`
 
     private conexion: Connection;
     constructor(private readonly dbConexionServicio: DatabaseService) { }
@@ -139,9 +148,7 @@ export class CrudUsuarioService {
             await this.registroDatosPersonales(idUsuario, usuario);
             await this.registroProyectoUsuario(idUsuario, usuario.idProyecto);
 
-            let CuerpoHtmlRegistro = this.bodyRegistroUsuario(nuevoNombreUsuario, contrasenaUsuario, usuario)
-
-            return CuerpoHtmlRegistro;
+            return { nuevoNombreUsuario, contrasenaUsuario };
 
         } catch (error) {
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
@@ -175,71 +182,7 @@ export class CrudUsuarioService {
         return [contrasenaEncriptada, generacionContrasena]
     }
 
-    bodyRegistroUsuario(nombreUsuario: string, contrasena: string, datosUsuario: DatosUsuario) {
-        return `
-        <div class="container">
-                        <div class="container">
-                            <div class="row">
-                                <div class="col"></div>
-                                <div class="col-10">
-                                    <div class="card boderCus">
-                                        <div class="card-body">
-                                            <h5 class="card-title TitleCus text-center">
-                                            Credenciales de acceso - CIAP
-                                            </h5>
-                                            <p class="card-text Saludo">
-                                                <span id="Saludo">Buen día,</span>
-                                                <span id="user" class="nameUser">${datosUsuario.nombres} ${datosUsuario.apellidos}</span>
-                                                <span>Reciba un cordial saludo.</span>
-                                            </p>
-                                            <p class="card-text mensaje">
-                                                A continuación, le enviamos sus credenciales de acceso a la plataforma CIAP:
-                                            </p>
 
-                                        
-                                            <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
-                                                data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
-                                                <span class="btnSpaCuston">Usuario: ${nombreUsuario}</span>
-                                            </button>
-
-                                            <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
-                                                data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
-                                                <span class="btnSpaCuston">Contraseña: ${contrasena}</span>
-                                            </button>
-                
-                                            <br>
-
-                                            <p class="">
-                                            Al ingresar al sistema, le solicitaremos el cambio de contraseña. 
-                                            Debe tener en cuenta las políticas de seguridad que se le indicarán.
-                                            </p>
-
-                                            <br>
-                                            <br>
-
-                                            <p class="">
-                                            Para acceder a la plataforma CIAP, haga clic <button type="button" class="btn btnCuston" id="toastbtn" data-bs-toggle="tooltip"
-                                            href="https://chat.openai.com/c/5d2dcf31-8c31-42bc-bb52-3560974570fb"  data-bs-placement="right" data-bs-title="Toca para copia tu codigo">
-                                            <span class="btnSpaCuston">click</span>
-                                        </button>
-                                            </p>
-                
-                                            <p class="note">
-                                                Este mensaje de correo se le ha enviado de forma automática.
-                                                Por favor, no intente enviar correos a la dirección de este
-                                                mensaje.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                             
-                            </div>
-                        </div>
-                    </div>
-
-                    </div>
-     `
-    }
 
     //validacion de comprobar si existe un proyecto
     async existeProyecto(idProyectos: number[]): Promise<boolean> {
@@ -280,9 +223,7 @@ export class CrudUsuarioService {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
-            // se actualizara la informacion de datos personales 
             const usuarios = await this.conexion.query(this.SQL_CUENTAS_USUARIO);
-            // se actualiza el rol
             return usuarios
 
         } catch (error) {
@@ -292,14 +233,12 @@ export class CrudUsuarioService {
             await this.dbConexionServicio.closeConnection();
         }
     }
-    async obtenerUsuariosPorId(): Promise<CuentasUsuario> {
+    async obtenerUsuario(id: number): Promise<CuentasUsuario> {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
-            // se actualizara la informacion de datos personales 
-            const usuarios = await this.conexion.query(this.SQL_CUENTAS_USUARIO);
-            // se actualiza el rol
-            return usuarios
+            const usuario = await this.conexion.query(this.SQL_CUENTAS_USUARIO_POR_ID, [id]);
+            return usuario;
 
         } catch (error) {
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
@@ -322,22 +261,23 @@ export class CrudUsuarioService {
         } catch (error) {
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
             throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
-        } finally {
-            await this.dbConexionServicio.closeConnection();
         }
     }
 
     //actualizar usuario
-    async actualizarUsuarios(usuario: DatosUsuario): Promise<void> {
+    async actualizarUsuarios(usuario: DatosUsuario): Promise<any> {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
+
 
             // se actualizara la informacion de datos personales
 
             await this.conexion.query(this.SQL_ACTUALIZAR_DATOS_PEROSONALES, [usuario.identificacion, usuario.nombres, usuario.apellidos, usuario.correo, usuario.idUsuario]);
             // se actualiza el rol
             await this.actualizarRolUsuario(usuario.idRol, usuario.idUsuario);
+            // se actualizan los proyectos si no son los mismos que estan agregados
+            await this.actualizarProyectoUsuario(usuario);
 
         } catch (error) {
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
@@ -346,6 +286,35 @@ export class CrudUsuarioService {
             await this.dbConexionServicio.closeConnection();
         }
     }
+
+    async actualizarProyectoUsuario(usuario:DatosUsuario){
+        const proyectosusuario = await this.obtenerProyectosUsuario(usuario.idUsuario);
+        let idUsuario = usuario.idUsuario.toString();
+
+        let idProyectosExistentes: number[] = proyectosusuario.map((proyecto: { proyecto_id: number; }) => proyecto.proyecto_id);
+        const existeProyectos = this.comparacionProyectosUsuario(idProyectosExistentes, usuario.idProyecto)
+
+        if (idProyectosExistentes.length === 0) {
+            return {
+                mensaje: "no se puede actualizar porque el usuario no tiene definido algun proyecto",
+                status: 401,
+            }
+        }
+
+        if (!existeProyectos) {
+            // se registra los nuevos proyectos y a los otros se le asignara estado 0 es decir desactivados
+            await this.conexion.query(this.SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO, [usuario.idUsuario])
+            await this.registroProyectoUsuario(idUsuario, usuario.idProyecto)
+
+        }
+    }
+
+    comparacionProyectosUsuario = (proyectosExistentes: any[], proyectosActualizar: any[]): boolean => {
+        const ProyectosA = new Set(proyectosExistentes);
+        const ProyectosB = new Set(proyectosActualizar);
+
+        return proyectosExistentes.length === proyectosActualizar.length && [...ProyectosA].every(elemento => ProyectosB.has(elemento));
+    };
 
     //actualizar usuario
     async actualizarEstadoUsuario(estado: EstadoUsuario): Promise<void> {
