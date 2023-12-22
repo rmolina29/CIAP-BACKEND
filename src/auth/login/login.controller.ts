@@ -5,6 +5,9 @@ import { DataLogin, RespuestaDataUsuario, datosObjetoCuerpoHtml } from './dto_au
 import * as moment from 'moment-timezone';
 import { MensajeAlerta, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
+import {  ApiBody,  ApiTags } from '@nestjs/swagger';
+
+@ApiTags('Autenticacion')
 
 @Controller('/auth')
 export class LoginController {
@@ -12,8 +15,7 @@ export class LoginController {
 
     private intentosLogin: number = 0;
     private bloqueoCuenta: number = null;
-
-
+    //@ApiBody()
     @Post('/login')
     async auth(@Body() usuario: DataLogin, @Res() res: Response): Promise<void> {
         try {

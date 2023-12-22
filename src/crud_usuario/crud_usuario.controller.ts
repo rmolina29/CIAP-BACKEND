@@ -6,7 +6,9 @@ import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } f
 import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectoIdUsuario, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
 import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Usuarios')
 @Controller('/usuario')
 export class CrudUsuarioController {
 
@@ -14,6 +16,7 @@ export class CrudUsuarioController {
     // crud de roles 
 
     // se obtienen todos los roles que estan registrados
+
     @Get('/roles')
     async obtenerRoles(@Res() res: Response) {
         const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
@@ -126,11 +129,11 @@ export class CrudUsuarioController {
         try {
             await this.excepcionesRegistroUsuarios(usuario);
             await this.sevicioUsuario.actualizarUsuarios(usuario);
-
-            res.status(HttpStatus.OK).json({ id: usuario.idUsuario,mensaje:"usuario actualizado exitosamente.", status: RespuestaPeticion.OK });
+            res.status(HttpStatus.OK).json({ id: usuario.idUsuario, mensaje: "usuario actualizado exitosamente.", status: RespuestaPeticion.OK });
         } catch (error) {
-            console.error(error.message);
-            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+            if (error instanceof NotFoundException)
+                console.error(error.message);
+            res.status(error.status).json({ err: MensajeAlerta.UPS, mensaje: error.message,status });
         }
 
     }
@@ -143,7 +146,7 @@ export class CrudUsuarioController {
     }
     // mostrar todos los usuarios
     @Get('/cuenta-usuario')
-    async usuario(@Body() usuario:UsuarioId,@Res() res: Response) {
+    async usuario(@Body() usuario: UsuarioId, @Res() res: Response) {
         const obtenerUsuario: CuentasUsuario = await this.sevicioUsuario.obtenerUsuario(usuario.id);
         res.status(HttpStatus.OK).json(obtenerUsuario);
     }
@@ -209,7 +212,7 @@ export class CrudUsuarioController {
     async validarEmail(correo: string, idUsuario: number): Promise<void> {
         const existeEmail = await this.sevicioUsuario.existeEmail(correo, idUsuario);
         if (existeEmail) {
-            throw new NotFoundException(`El correo '${correo}' ya se encuentra asociado a un usuario.`);
+            throw new NoAutorizadoException(`El correo '${correo}' ya se encuentra asociado a un usuario.`);
         }
     }
 
@@ -242,4 +245,14 @@ export class CrudUsuarioController {
 
     }
 
+}
+
+
+class NoAutorizadoException extends Error {
+    status: number;
+    constructor(message: string = "No tienes autorización para realizar esta acción") {
+        super(message);
+        this.name = "NoAutorizadoException";
+        this.status = 401;
+    }
 }

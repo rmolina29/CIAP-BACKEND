@@ -1,14 +1,19 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { validacionCamposVaciosString, validacionTipadoNumVacios, validacionTipoStringVacios } from 'src/dtoValidation/validacionesGlobalesDto';
 
 export class DataLogin {
+
+    @ApiProperty({ example: 'rmolina', description: 'Nombre del usuario',required: false  })
     @validacionCamposVaciosString('el nombre de usuario debe ser un string', 'el nombre de usuario no debe ir vacio.')
     user?: string;
 
+    @ApiProperty({ example: '', description: 'Contraseña' })
     @IsString({ message: 'La contraseña debe ser un string' })
     @IsNotEmpty({ message: 'La contraseña no puede ir vacía' })
     pass: string;
 
+    @ApiProperty({ example: '', description: 'Correo',required: false })
     @validacionCamposVaciosString('el email debe ser un string', 'el correo no debe ir vacio.')
     @IsEmail({}, { message: 'Formato de correo electrónico no válido' })
     mail?: string;

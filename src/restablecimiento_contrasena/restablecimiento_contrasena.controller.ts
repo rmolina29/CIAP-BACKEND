@@ -4,7 +4,10 @@ import { ContrasenaUsuario, DatosToken, email, tokenValidacion } from './restabl
 import { Response } from 'express';
 import { EnvioCorreosService } from './envio_correos/envio_correos.service'
 import { Email } from './envio_correos/email.dto/email.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+
+@ApiTags('Autenticacion')
 @Controller('/auth')
 export class RestablecimientoContrasenaController {
 
