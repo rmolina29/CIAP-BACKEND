@@ -35,7 +35,10 @@ export class CrudUsuarioService {
                                                         JOIN proyecto p ON up.proyecto_id = p.id 
                                                         WHERE  up.usuario_id  = ? AND up.estado = 1;`
 
-    private readonly SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO = `UPDATE usuario_proyecto SET estado = 0 WHERE usuario_id = ?;`
+    private readonly SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO = `UPDATE usuario_proyecto
+                                                                SET estado = 0
+                                                                WHERE usuario_id = ?
+                                                                AND proyecto_id IN (?);`
 
     private conexion: Connection;
     constructor(private readonly dbConexionServicio: DatabaseService) { }
@@ -287,28 +290,25 @@ export class CrudUsuarioService {
         }
     }
 
-    async actualizarProyectoUsuario(usuario:DatosUsuario){
+    async actualizarProyectoUsuario(usuario: DatosUsuario) {
+
         const proyectosusuario = await this.obtenerProyectosUsuario(usuario.idUsuario);
-        let idUsuario = usuario.idUsuario.toString();
 
         let idProyectosExistentes: number[] = proyectosusuario.map((proyecto: { proyecto_id: number; }) => proyecto.proyecto_id);
         const existeProyectos = this.comparacionProyectosUsuario(idProyectosExistentes, usuario.idProyecto)
 
         if (idProyectosExistentes.length === 0) {
-            return {
-                mensaje: "no se puede actualizar porque el usuario no tiene definido algun proyecto",
-                status: 401,
-            }
+            return
         }
 
+        // se valida si hay algun cambio en los proyectos
         if (!existeProyectos) {
-            // se registra los nuevos proyectos y a los otros se le asignara estado 0 es decir desactivados
-            await this.conexion.query(this.SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO, [usuario.idUsuario])
-            await this.registroProyectoUsuario(idUsuario, usuario.idProyecto)
-
+            await this.proyectoActualizacionPorUsuario(usuario, idProyectosExistentes);
         }
     }
 
+
+    // se hace la comparacion entre los proyectos de bd asignados a los usuarios con los que se actualizaran
     comparacionProyectosUsuario = (proyectosExistentes: any[], proyectosActualizar: any[]): boolean => {
         const ProyectosA = new Set(proyectosExistentes);
         const ProyectosB = new Set(proyectosActualizar);
@@ -316,6 +316,30 @@ export class CrudUsuarioService {
         return proyectosExistentes.length === proyectosActualizar.length && [...ProyectosA].every(elemento => ProyectosB.has(elemento));
     };
 
+
+    // Aqui se hara el proceso para comparar los proyectos de los usuario de los cuales estan indicados como activos en la bd contra los proyectos que me envia el usuario 
+    proyectoscambio(proyectosParaFiltro: number[], proyectosComparacion: number[]) {
+        const proyectosUsuarios = proyectosComparacion.filter(conjuntoIdProyectos => !proyectosParaFiltro.includes(conjuntoIdProyectos));
+        return proyectosUsuarios;
+    }
+
+    async proyectoActualizacionPorUsuario(usuario: DatosUsuario, idProyectosExistentes: number[]) {
+
+        let idUsuario = usuario.idUsuario.toString();
+        // comparacion entre los proyetcos que tiene asignado el usuario contra los proyectos que se actualizaran, me devolvera los proyectos que no estan asignados en la actualizacion
+        const proyectosActualizar = this.proyectoscambio(usuario.idProyecto, idProyectosExistentes)
+        // se registra los nuevos proyectos y a los otros se le asignara estado 0 es decir desactivados
+
+        if (proyectosActualizar.length > 0) {
+            await this.conexion.query(this.SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO, [idUsuario, proyectosActualizar.join(', ')])
+        }
+
+        // realiza la comparacion de los proyectos nuevos en comparacion a los que ya tiene asignados el usuario y le devolvera los que no se encuentran asignados
+        const nuevosProyectos = this.proyectoscambio(idProyectosExistentes, usuario.idProyecto)
+        if (nuevosProyectos.length > 0) {
+            await this.registroProyectoUsuario(idUsuario, nuevosProyectos);
+        }
+    }
     //actualizar usuario
     async actualizarEstadoUsuario(estado: EstadoUsuario): Promise<void> {
         try {

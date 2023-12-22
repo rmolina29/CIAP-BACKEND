@@ -38,3 +38,4 @@ lerna-debug.log*
 .env
 docker-compose.yml
 documentacio.api.md
+test.ts
