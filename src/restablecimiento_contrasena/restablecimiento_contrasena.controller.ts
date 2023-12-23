@@ -4,7 +4,7 @@ import { ContrasenaUsuario, DatosToken, email, tokenValidacion } from './restabl
 import { Response } from 'express';
 import { EnvioCorreosService } from './envio_correos/envio_correos.service'
 import { Email } from './envio_correos/email.dto/email.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
 
 
 @ApiTags('Autenticacion')
@@ -13,7 +13,7 @@ export class RestablecimientoContrasenaController {
 
 
     constructor(private readonly serviceContrasena: RestablecimientoContrasenaService, private readonly servicioCorreo: EnvioCorreosService) { }
-
+    @ApiBody({ type: email, description: 'Datos para verificar que el email sea correcto.' })
     @Post('/email_verificacion')
     async verificarEmail(@Body() mail: email, @Res() res: Response): Promise<void> {
         try {
@@ -42,6 +42,7 @@ export class RestablecimientoContrasenaController {
     }
 
     @Post('/olvidar_contrasena')
+    @ApiBody({ type: Email, description: 'informacion que se usara la generacion dle Token.' })
     async olvidarContrasena(@Body() usuario_valido: Email, @Res() res: Response): Promise<void> {
         try {
             // esto me retorna el token de 4 digitos y la fecha de expiracion del token

@@ -4,16 +4,16 @@ import { validacionCamposVaciosString, validacionTipadoNumVacios, validacionTipo
 
 export class DataLogin {
 
-    @ApiProperty({ example: 'rmolina', description: 'Nombre del usuario',required: false  })
+    @ApiProperty({ example: 'evelandia', description: 'Nombre del usuario', required: false })
     @validacionCamposVaciosString('el nombre de usuario debe ser un string', 'el nombre de usuario no debe ir vacio.')
     user?: string;
 
-    @ApiProperty({ example: '', description: 'Contraseña' })
+    @ApiProperty({ example: 'f629fe9c9b878a75599de581d8304e0d6d7a7684fd1dc9c4d0514328223fdf79', description: 'Contraseña', required: true })
     @IsString({ message: 'La contraseña debe ser un string' })
     @IsNotEmpty({ message: 'La contraseña no puede ir vacía' })
     pass: string;
 
-    @ApiProperty({ example: '', description: 'Correo',required: false })
+    @ApiProperty({ example: '', description: 'Correo', required: false })
     @validacionCamposVaciosString('el email debe ser un string', 'el correo no debe ir vacio.')
     @IsEmail({}, { message: 'Formato de correo electrónico no válido' })
     mail?: string;
@@ -67,10 +67,10 @@ export class RespuestaDataUsuario {
     bloqueo_cuenta_usuario: number;
 }
 
-export class datosObjetoCuerpoHtml{
-    tiempoRelogin:number;
-    fechaBloqueo:string;
-    cantidadLoginValidos:number;
+export class datosObjetoCuerpoHtml {
+    tiempoRelogin: number;
+    fechaBloqueo: string;
+    cantidadLoginValidos: number;
 
 }
 

@@ -8,7 +8,7 @@ import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 's
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
 import { ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Usuarios')
+
 @Controller('/usuario')
 export class CrudUsuarioController {
 
@@ -16,7 +16,7 @@ export class CrudUsuarioController {
     // crud de roles 
 
     // se obtienen todos los roles que estan registrados
-
+    @ApiTags('Roles')
     @Get('/roles')
     async obtenerRoles(@Res() res: Response) {
         const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
@@ -24,6 +24,7 @@ export class CrudUsuarioController {
     }
 
     // se crean los roles
+    @ApiTags('Roles')
     @Post('/rol/registro')
     async rolRegistro(@Body() body: bodyRolRegistro, @Res() res: Response) {
 
@@ -50,13 +51,15 @@ export class CrudUsuarioController {
             res.status(respuestaRegistro.respuestHttp).json(respuestaRegistro)
 
         } catch (error) {
-            console.error('problema en la respuesta del controller');
-            throw new Error(`error de servidor: ${error}`);
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
 
     }
 
     // se actualiza el nombre del rol
+
+    @ApiTags('Roles')
     @Put('/rol/nombre')
     async actualizarRol(@Body() rol: RolNombre, @Res() res: Response) {
         try {
@@ -76,18 +79,24 @@ export class CrudUsuarioController {
             res.status(HttpStatus.OK).json(mensaje)
 
         } catch (error) {
-            console.error('problema en la respuesta del controller');
-            throw new Error(`error de servidor: ${error}`);
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
 
     }
 
     // se actualiza el estado del rol a descativado o activado
+
+    @ApiTags('Roles')
     @Put('/rol/estado')
     async actualizarEstado(@Body() rol: RolEstado, @Res() res: Response) {
         try {
             // validacion de que el usuario le envie un id rol que exista y que valide si hay un usuario ligado con esta id.
-            await this.validacionRolActualizar(rol);
+            const validacionRol = await this.validacionRolActualizar(rol);
+
+            if (!validacionRol.success) {
+                res.status(validacionRol.status).json(validacionRol)
+            }
             await this.serivioRol.actualizarEstadoRol(rol);
 
             const response = rol.estado === TipoEstado.ACTIVO ? 'rol activado' : 'rol desactivado';
@@ -98,16 +107,14 @@ export class CrudUsuarioController {
             });
 
         } catch (error) {
-            console.error('Problema en la respuesta del controlador', error.message);
-            res.status(error.getStatus()).json({
-                status: 'no',
-                mensaje: error.message,
-            });
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
     }
 
     // crud de usuarios
     // Se registrara el usuario, rol asignado al usuario y proyectos
+    @ApiTags('Usuarios')
     @Post('/registrar')
     async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
@@ -119,11 +126,11 @@ export class CrudUsuarioController {
 
             res.status(HttpStatus.OK).json({ mensaje: RegistroUsuario.EXITOSO, status: RespuestaPeticion.OK });
         } catch (error) {
-            console.error('Error executing query:', error.message);
-            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
     }
-
+    @ApiTags('Usuarios')
     @Put('/actualizar')
     async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
@@ -131,20 +138,20 @@ export class CrudUsuarioController {
             await this.sevicioUsuario.actualizarUsuarios(usuario);
             res.status(HttpStatus.OK).json({ id: usuario.idUsuario, mensaje: "usuario actualizado exitosamente.", status: RespuestaPeticion.OK });
         } catch (error) {
-            if (error instanceof NotFoundException)
-                console.error(error.message);
-            res.status(error.status).json({ err: MensajeAlerta.UPS, mensaje: error.message,status });
+            res.status(error.status).json({ err: MensajeAlerta.UPS, mensaje: error.message, status });
         }
 
     }
 
     // mostrar todos los usuarios
+    @ApiTags('Usuarios')
     @Get('/cuentas-usuario')
     async usuarios(@Res() res: Response) {
         const obtenerUsuarios: CuentasUsuario = await this.sevicioUsuario.obtenerUsuarios();
         res.status(HttpStatus.OK).json(obtenerUsuarios);
     }
     // mostrar todos los usuarios
+    @ApiTags('Usuarios')
     @Get('/cuenta-usuario')
     async usuario(@Body() usuario: UsuarioId, @Res() res: Response) {
         const obtenerUsuario: CuentasUsuario = await this.sevicioUsuario.obtenerUsuario(usuario.id);
@@ -152,6 +159,7 @@ export class CrudUsuarioController {
     }
 
     // desactiva y activa cuenta del usuario
+    @ApiTags('Usuarios')
     @Put('/actualizar/cuenta')
     async actualizarEstadoCuenta(@Body() estado: EstadoUsuario, @Res() res: Response) {
         try {
@@ -170,6 +178,7 @@ export class CrudUsuarioController {
 
     }
 
+    @ApiTags('Proyectos-usuarios')
     @Get('/proyectos')
     async obtenerListaProyecto(@Res() res: Response) {
         try {
@@ -182,6 +191,8 @@ export class CrudUsuarioController {
         }
 
     }
+
+    @ApiTags('Proyectos-usuarios')
     @Get('/proyectos-de-usuario')
     async obtenerListaProyectoUsuario(@Body() usuario: ProyectoIdUsuario, @Res() res: Response) {
         try {
@@ -231,18 +242,20 @@ export class CrudUsuarioController {
     }
 
 
-    async validacionRolActualizar(rol: RolEstado): Promise<void> {
-        const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol)
-        const ValidacionRoLigado = await this.serivioRol.existeusuarioLigadoRol(rol.idRol)
+    async validacionRolActualizar(rol: RolEstado): Promise<{ success: boolean, status: number, message?: string, response: string }> {
 
-        switch (true) {
-            case ExisteIdRol:
-                throw new NotFoundException(`El id del rol '${rol.idRol}' no existe y el rol .`);
-            case ValidacionRoLigado:
-                throw new NotFoundException(`Este rol no se puede deshabilitar, debido a que se encuentra asociad usuarios activos.`);
-            default:
+        const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol);
+        const ValidacionRoLigado = await this.serivioRol.existeusuarioLigadoRol(rol.idRol);
+
+        if (ExisteIdRol) {
+            return { success: false, status: 401, message: `El id del rol '${rol.idRol}' no existe.`, response: 'no' };
         }
 
+        if (ValidacionRoLigado) {
+            return { success: false, status: 401, message: `Este rol no se puede deshabilitar, debido a que se encuentra asociado a usuarios activos.`, response: 'no' };
+        }
+
+        return { success: true, status: 200, response: 'ok' };
     }
 
 }
