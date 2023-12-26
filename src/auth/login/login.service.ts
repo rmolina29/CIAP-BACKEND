@@ -49,6 +49,29 @@ export class LoginService {
 
     }
 
+    // esta consulta le sirve los permisos del rol que se encuentran asignados 
+    async permisoRol(idRol: number) {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            let sql = `SELECT mr.usuario_rol_id  as id_rol, m.id as id_menu,m.id_menu_padre , m.descripcion as menu, mp.id as id_permisos, mp.permiso, mp.abreviatura 
+            FROM menu_rol mr
+            JOIN menu m ON m.id = mr.menu_id 
+            JOIN menu_permisos mp ON mp.id = mr.permiso_id 
+            WHERE mr.usuario_rol_id = ${idRol} AND mr.estado = 1
+            ORDER BY m.id ASC;`;
+
+            let permisosRolUsuario = await this.conexion.query(sql);
+
+            return permisosRolUsuario
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error('error de servidor');
+        }
+    }
+
     async verificarUsuario(usuario: DataVerificacionUsuario): Promise<Array<any>> {
 
         try {

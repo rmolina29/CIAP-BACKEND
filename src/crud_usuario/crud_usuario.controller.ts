@@ -2,19 +2,25 @@ import { Body, Controller, Get, HttpStatus, Post, Put, Query, Res, UseGuards } f
 import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
-import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
+import { DataRol, RolEstado, RolMenu, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
 import { CuentasUsuario, DatosUsuario, EstadoUsuario, InformacionProyecto, ProyectoIdUsuario, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
 import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
 import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ValidacionService } from './validaciones_crudUsuario/validaciones_usuario_crud.service';
 import { GuardsGuard } from './guards/guards.guard';
+import { RolMenuService } from './rol-menu/rol-menu.service';
 
 
 @Controller('/usuario')
 export class CrudUsuarioController {
 
-    constructor(private readonly validacionService: ValidacionService, private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService, private readonly servicioEnvioCorreo: EnvioCorreosService) { }
+    constructor(private readonly validacionService: ValidacionService,
+        private readonly sevicioUsuario: CrudUsuarioService,
+        private readonly serivioRol: CrudRolService,
+        private readonly servicioEnvioCorreo: EnvioCorreosService,
+        private readonly serviciRoloMenu: RolMenuService
+    ) { }
     // crud de roles 
 
     // se obtienen todos los roles que estan registrados
@@ -118,6 +124,72 @@ export class CrudUsuarioController {
         }
     }
 
+    // rol menu
+    @ApiTags('Roles')
+    @Get('/rol/menu')
+    @ApiBody({ description: 'Se obtiene la informacion del menu de los roles.' })
+    async rolMenu(@Res() res: Response) {
+        try {
+            // .
+            const datosMenu = await this.serviciRoloMenu.obtenerMenu();
+            res.status(HttpStatus.OK).json(datosMenu);
+
+        } catch (error) {
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+    }
+    // rol permisos asignados
+    @ApiTags('Roles')
+    @Get('/rol/menu-permisos')
+    @ApiBody({ description: 'Se obtiene la informacion de de los permisos que se le podran asignar a los roles.' })
+    async menuPermisos(@Res() res: Response) {
+        try {
+            // .
+            const datosMenuPermiso = await this.serviciRoloMenu.obtenerPermisos();
+            res.status(HttpStatus.OK).json(datosMenuPermiso);
+
+        } catch (error) {
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+    }
+
+    @ApiTags('Roles')
+    @Get('/rol/permisos')
+    @ApiQuery({
+        name: 'id',
+        type: 'number',
+        description: 'el id del rol para obtener los permisos.',
+        example: 1,
+        required: true,
+    })
+    @ApiOkResponse({ description: 'Respuesta exitosa' })
+    async permisosRol(@Query('id') idRol: number, @Res() res: Response) {
+        try {
+            // .
+            const datosRolPermisos = await this.serviciRoloMenu.obtenerPermisosDelRol(idRol);
+            res.status(HttpStatus.OK).json(datosRolPermisos);
+
+        } catch (error) {
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+    }
+
+    @ApiTags('Roles')
+    @Post('/rol/permisos')
+    @ApiOkResponse({ description: 'Respuesta exitosa' })
+    async RegistrarPermisosRol(@Body() permisos: any, @Res() res: Response) {
+        try {
+            // .
+
+        } catch (error) {
+            console.error(error.message);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+        }
+    }
+
     // crud de usuarios
     // Se registrara el usuario, rol asignado al usuario y proyectos
     @ApiTags('Usuarios')
@@ -141,6 +213,7 @@ export class CrudUsuarioController {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
     }
+
     @ApiTags('Usuarios')
     @Put('/actualizar')
     @UseGuards(GuardsGuard)
@@ -169,14 +242,6 @@ export class CrudUsuarioController {
     async usuarios(@Res() res: Response) {
         const obtenerUsuarios: CuentasUsuario = await this.sevicioUsuario.obtenerUsuarios();
         res.status(HttpStatus.OK).json(obtenerUsuarios);
-    }
-    // mostrar todos los usuarios
-    @ApiTags('Usuarios')
-    @Get('/cuenta-usuario')
-    @ApiOkResponse({ type: CuentasUsuario, description: 'Respuesta exitosa' })
-    async usuario(@Query('id') idUsuario: number, @Res() res: Response) {
-        const obtenerUsuario: CuentasUsuario = await this.sevicioUsuario.obtenerUsuario(idUsuario);
-        res.status(HttpStatus.OK).json(obtenerUsuario);
     }
 
     // desactiva y activa cuenta del usuario

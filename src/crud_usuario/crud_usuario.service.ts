@@ -5,7 +5,6 @@ import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectosActivos, UsuarioI
 import { sha256 } from 'js-sha256';
 import * as randomatic from 'randomatic';
 import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
-import { isEqual } from 'lodash';
 
 @Injectable()
 export class CrudUsuarioService {
@@ -21,12 +20,6 @@ export class CrudUsuarioService {
     JOIN usuario_rol ur ON ua.id_rol = ur.id 
     ORDER BY ua.id;`;
 
-    private readonly SQL_CUENTAS_USUARIO_POR_ID = `  SELECT ua.id as id_usuario, ua.nombre_usuario as usuario, udp.identificacion, udp.nombres as nombre, udp.apellidos,udp.correo,ur.id as id_rol, ur.tipo as rol ,ua.estado
-    FROM usuario_auth ua 
-    JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
-    JOIN usuario_rol ur ON ua.id_rol = ur.id 
-    WHERE id_usuario = ?
-    ORDER BY ua.id;`;
 
     private readonly SQL_ACTUALIZAR_ESTADO_CUENTA = "UPDATE usuario_auth set estado = ? WHERE id = ?"
 
@@ -236,21 +229,6 @@ export class CrudUsuarioService {
             await this.dbConexionServicio.closeConnection();
         }
     }
-    async obtenerUsuario(id: number): Promise<CuentasUsuario> {
-        try {
-            this.conexion = await this.dbConexionServicio.connectToDatabase()
-            this.conexion = this.dbConexionServicio.getConnection();
-            const usuario = await this.conexion.query(this.SQL_CUENTAS_USUARIO_POR_ID, [id]);
-            return usuario;
-
-        } catch (error) {
-            console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
-            throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
-        } finally {
-            await this.dbConexionServicio.closeConnection();
-        }
-    }
-
 
     async obtenerProyectosUsuario(idUsuario: number) {
         try {

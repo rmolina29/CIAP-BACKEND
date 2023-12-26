@@ -92,6 +92,7 @@ export class LoginController {
             this.reseteContadorFallidos();
             return {
                 data: datosObjetoUsuario,
+                permisos: await this.servicioLogin.permisoRol(datosObjetoUsuario.id_rol_usuario),
                 response: { status: 'ok', mensaje: 'autorizado' },
             };
         }

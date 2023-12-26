@@ -54,3 +54,27 @@ export class DataRol {
     fechasistema: string;
 }
 
+
+export class RolMenu {
+    [x: string]: any;
+  
+   
+    @ApiProperty({ example: '5', description: 'la id del menu.', required: true })
+    @validacionTipadoNumVacios('el id del menu no debe ir vacio.', 'el id del menu debe ser un numero entero.')
+    idMenu: number;
+
+    nombreTipoMenu: string;
+
+    tipoMenuId: number;
+
+    idMenuPadre: number;
+
+    icono: string;
+
+    programa: string;
+
+    @ApiProperty({ example: Estado.Inactivo, description: 'el estado 0 (inactivo) 1 (activo)', required: true, minimum: 0, maximum: 1, enum: Estado })
+    @validacionTipadoNumVacios('el estado no debe ir vacio.', 'el estado debe ser un numero entero.')
+    @IsIn([0, 1], { message: 'el estado debe ser 0 o 1' })
+    estado: number;
+}
