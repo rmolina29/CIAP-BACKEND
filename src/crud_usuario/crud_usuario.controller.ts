@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Post, Put, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
 import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
@@ -8,6 +8,7 @@ import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 's
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
 import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ValidacionService } from './validaciones_crudUsuario/validaciones_usuario_crud.service';
+import { GuardsGuard } from './guards/guards.guard';
 
 
 @Controller('/usuario')
@@ -121,14 +122,15 @@ export class CrudUsuarioController {
     // Se registrara el usuario, rol asignado al usuario y proyectos
     @ApiTags('Usuarios')
     @Post('/registrar')
+    @UseGuards(GuardsGuard)
     @ApiBody({ type: DatosUsuario, description: 'Se hara el registro de ususarios.' })
     async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
-            const validacionesRegistro = await this.validacionService.excepcionesRegistroUsuarios(usuario);
-            if (!validacionesRegistro.success) {
-                return res.status(validacionesRegistro.status).json(validacionesRegistro);
+            // const validacionesRegistro = await this.validacionService.excepcionesRegistroUsuarios(usuario);
+            // if (!validacionesRegistro.success) {
+            //     return res.status(validacionesRegistro.status).json(validacionesRegistro);
 
-            }
+            // }
             const datosUsuario = await this.sevicioUsuario.registrarUsuario(usuario);
             const htmlCuerpoRegistro = this.servicioEnvioCorreo.CuerpoRegistroUsuario(datosUsuario.nuevoNombreUsuario, datosUsuario.contrasenaUsuario, usuario);
             this.servicioEnvioCorreo.envio_correo(htmlCuerpoRegistro, usuario.correo);
@@ -141,15 +143,16 @@ export class CrudUsuarioController {
     }
     @ApiTags('Usuarios')
     @Put('/actualizar')
+    @UseGuards(GuardsGuard)
     @ApiBody({ type: DatosUsuario, description: 'Se hara la actualizacion de ususarios.' })
     async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
             // obtiene las validaciones de si el usuario no cotenga informacion que ya este registrada
-            const validacionActualizacion = await this.validacionService.excepcionesRegistroUsuarios(usuario);
+            // const validacionActualizacion = await this.validacionService.excepcionesRegistroUsuarios(usuario);
 
-            if (!validacionActualizacion.success) {
-                return res.status(validacionActualizacion.status).json(validacionActualizacion);
-            }
+            // if (!validacionActualizacion.success) {
+            //     return res.status(validacionActualizacion.status).json(validacionActualizacion);
+            // }
 
             await this.sevicioUsuario.actualizarUsuarios(usuario);
             res.status(HttpStatus.OK).json({ id: usuario.idUsuario, mensaje: "usuario actualizado exitosamente.", status: RespuestaPeticion.OK });
