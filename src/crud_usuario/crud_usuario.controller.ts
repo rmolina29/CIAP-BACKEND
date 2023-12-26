@@ -107,8 +107,9 @@ export class CrudUsuarioController {
             const validacionRol = await this.validacionService.rolActualizar(rol);
 
             if (!validacionRol.success) {
-                res.status(validacionRol.status).json(validacionRol);
+                return res.status(validacionRol.status).json(validacionRol);
             }
+            
             await this.serivioRol.actualizarEstadoRol(rol);
 
             const response = rol.estado === TipoEstado.ACTIVO ? 'rol activado' : 'rol desactivado';
