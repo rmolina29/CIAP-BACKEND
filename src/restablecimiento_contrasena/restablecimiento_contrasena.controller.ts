@@ -62,6 +62,7 @@ export class RestablecimientoContrasenaController {
 
     // en este endpoint lo que se hara es validar que el token no se encuentre en estado 
     @Post('/validaToken')
+    @ApiBody({ type: tokenValidacion, description: 'Se hace la pertinente validacion del token segun su estado.' })
     async validarToken(@Body() body: tokenValidacion, @Res() res: Response) {
         try {
             let servicioToken = this.serviceContrasena
@@ -93,6 +94,7 @@ export class RestablecimientoContrasenaController {
 
     //endpoint para validar el historial de la contraseña no sea igual 
     @Post('/cambio_contrasena')
+    @ApiBody({ type: ContrasenaUsuario, description: 'Se procede a realizar el cambio de contraseña.' })
     async cambioContrasena(@Body() requestContra: ContrasenaUsuario, @Res() res: Response) {
         try {
 

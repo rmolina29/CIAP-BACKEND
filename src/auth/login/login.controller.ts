@@ -5,7 +5,7 @@ import { DataLogin, RespuestaDataUsuario, datosObjetoCuerpoHtml } from './dto_au
 import * as moment from 'moment-timezone';
 import { MensajeAlerta, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
-import { ApiBody, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Autenticacion')
 
@@ -13,12 +13,14 @@ import { ApiBody, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 export class LoginController {
     constructor(private readonly servicioLogin: LoginService, private readonly servicioEnvioCorreo: EnvioCorreosService) { }
 
+
     private intentosLogin: number = 0;
     private bloqueoCuenta: number = null;
 
     @Post('/login')
     @ApiBody({ type: DataLogin, description: 'Datos de inicio de sesión' })
     @ApiResponse({ status: 200, description: 'Autenticación exitosa' })
+    @ApiResponse({ status: 401, description: 'No autorizado.' })
     @ApiResponse({ status: 400, description: 'Error en la solicitud' })
     async auth(@Body() usuario: DataLogin, @Res() res: Response): Promise<void> {
         try {

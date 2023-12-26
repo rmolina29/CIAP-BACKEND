@@ -259,7 +259,9 @@ export class CrudUsuarioService {
             // se actualizara la informacion de datos personales 
             const usuarioProyectos = await this.conexion.query(this.SQL_SELECT_PROYECTOS_POR_USUARIO, [idUsuario]);
             // se actualiza el rol
-            return usuarioProyectos
+            const proyectosActivos = usuarioProyectos.length > 0 ? usuarioProyectos : { mensaje: 'no se encontraron proyectos activos con referente a este usuario.', status: 'ok' };
+
+            return proyectosActivos;
 
         } catch (error) {
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });

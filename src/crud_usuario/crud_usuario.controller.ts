@@ -1,23 +1,25 @@
-import { Body, Controller, Get, HttpStatus, NotFoundException, Post, Put, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Put, Query, Res } from '@nestjs/common';
 import { CrudRolService } from './crud_rol/crud_rol.service';
 import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
 import { DataRol, RolEstado, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
-import { CuentasUsuario, DatosUsuario, EstadoUsuario, ProyectoIdUsuario, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
+import { CuentasUsuario, DatosUsuario, EstadoUsuario, InformacionProyecto, ProyectoIdUsuario, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
 import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ValidacionService } from './validaciones_crudUsuario/validaciones_usuario_crud.service';
 
 
 @Controller('/usuario')
 export class CrudUsuarioController {
 
-    constructor(private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService, private readonly servicioEnvioCorreo: EnvioCorreosService) { }
+    constructor(private readonly validacionService: ValidacionService, private readonly sevicioUsuario: CrudUsuarioService, private readonly serivioRol: CrudRolService, private readonly servicioEnvioCorreo: EnvioCorreosService) { }
     // crud de roles 
 
     // se obtienen todos los roles que estan registrados
     @ApiTags('Roles')
     @Get('/roles')
+    @ApiOkResponse({ type: DataRol, description: 'Respuesta exitosa' })
     async obtenerRoles(@Res() res: Response) {
         const obtenerDatosRoles: DataRol = await this.serivioRol.obtenerRoles()
         res.status(HttpStatus.OK).json(obtenerDatosRoles)
@@ -26,6 +28,7 @@ export class CrudUsuarioController {
     // se crean los roles
     @ApiTags('Roles')
     @Post('/rol/registro')
+    @ApiBody({ type: bodyRolRegistro, description: 'Obtiene todos los roles ya esten activos o inactivos.' })
     async rolRegistro(@Body() body: bodyRolRegistro, @Res() res: Response) {
 
         try {
@@ -61,6 +64,7 @@ export class CrudUsuarioController {
 
     @ApiTags('Roles')
     @Put('/rol/nombre')
+    @ApiBody({ type: RolNombre, description: 'Se actualizara el rol del nombre por medio el id y el nuevo nombre a actualizar.' })
     async actualizarRol(@Body() rol: RolNombre, @Res() res: Response) {
         try {
             let nombre = rol.nombreRol;
@@ -89,13 +93,14 @@ export class CrudUsuarioController {
 
     @ApiTags('Roles')
     @Put('/rol/estado')
+    @ApiBody({ type: RolEstado, description: 'Se actualizara el estado rol del rol para activar o desactivar.' })
     async actualizarEstado(@Body() rol: RolEstado, @Res() res: Response) {
         try {
             // validacion de que el usuario le envie un id rol que exista y que valide si hay un usuario ligado con esta id.
-            const validacionRol = await this.validacionRolActualizar(rol);
+            const validacionRol = await this.validacionService.rolActualizar(rol);
 
             if (!validacionRol.success) {
-                res.status(validacionRol.status).json(validacionRol)
+                res.status(validacionRol.status).json(validacionRol);
             }
             await this.serivioRol.actualizarEstadoRol(rol);
 
@@ -116,10 +121,14 @@ export class CrudUsuarioController {
     // Se registrara el usuario, rol asignado al usuario y proyectos
     @ApiTags('Usuarios')
     @Post('/registrar')
+    @ApiBody({ type: DatosUsuario, description: 'Se hara el registro de ususarios.' })
     async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
-            await this.excepcionesRegistroUsuarios(usuario);
+            const validacionesRegistro = await this.validacionService.excepcionesRegistroUsuarios(usuario);
+            if (!validacionesRegistro.success) {
+                return res.status(validacionesRegistro.status).json(validacionesRegistro);
 
+            }
             const datosUsuario = await this.sevicioUsuario.registrarUsuario(usuario);
             const htmlCuerpoRegistro = this.servicioEnvioCorreo.CuerpoRegistroUsuario(datosUsuario.nuevoNombreUsuario, datosUsuario.contrasenaUsuario, usuario);
             this.servicioEnvioCorreo.envio_correo(htmlCuerpoRegistro, usuario.correo);
@@ -132,9 +141,16 @@ export class CrudUsuarioController {
     }
     @ApiTags('Usuarios')
     @Put('/actualizar')
+    @ApiBody({ type: DatosUsuario, description: 'Se hara la actualizacion de ususarios.' })
     async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
-            await this.excepcionesRegistroUsuarios(usuario);
+            // obtiene las validaciones de si el usuario no cotenga informacion que ya este registrada
+            const validacionActualizacion = await this.validacionService.excepcionesRegistroUsuarios(usuario);
+
+            if (!validacionActualizacion.success) {
+                return res.status(validacionActualizacion.status).json(validacionActualizacion);
+            }
+
             await this.sevicioUsuario.actualizarUsuarios(usuario);
             res.status(HttpStatus.OK).json({ id: usuario.idUsuario, mensaje: "usuario actualizado exitosamente.", status: RespuestaPeticion.OK });
         } catch (error) {
@@ -146,6 +162,7 @@ export class CrudUsuarioController {
     // mostrar todos los usuarios
     @ApiTags('Usuarios')
     @Get('/cuentas-usuario')
+    @ApiOkResponse({ type: CuentasUsuario, description: 'Respuesta exitosa' })
     async usuarios(@Res() res: Response) {
         const obtenerUsuarios: CuentasUsuario = await this.sevicioUsuario.obtenerUsuarios();
         res.status(HttpStatus.OK).json(obtenerUsuarios);
@@ -153,14 +170,16 @@ export class CrudUsuarioController {
     // mostrar todos los usuarios
     @ApiTags('Usuarios')
     @Get('/cuenta-usuario')
-    async usuario(@Body() usuario: UsuarioId, @Res() res: Response) {
-        const obtenerUsuario: CuentasUsuario = await this.sevicioUsuario.obtenerUsuario(usuario.id);
+    @ApiOkResponse({ type: CuentasUsuario, description: 'Respuesta exitosa' })
+    async usuario(@Query('id') idUsuario: number, @Res() res: Response) {
+        const obtenerUsuario: CuentasUsuario = await this.sevicioUsuario.obtenerUsuario(idUsuario);
         res.status(HttpStatus.OK).json(obtenerUsuario);
     }
 
     // desactiva y activa cuenta del usuario
     @ApiTags('Usuarios')
     @Put('/actualizar/cuenta')
+    @ApiBody({ type: EstadoUsuario, description: 'Se realiza la activacion o desactivacion de la cuenta del usuario.' })
     async actualizarEstadoCuenta(@Body() estado: EstadoUsuario, @Res() res: Response) {
         try {
             await this.sevicioUsuario.actualizarEstadoUsuario(estado);
@@ -173,99 +192,43 @@ export class CrudUsuarioController {
 
         } catch (error) {
             console.error(error.message);
-            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
 
     }
 
     @ApiTags('Proyectos-usuarios')
     @Get('/proyectos')
+    @ApiOkResponse({ description: 'Respuesta exitosa' })
     async obtenerListaProyecto(@Res() res: Response) {
         try {
-            const obtenerProyectos = await this.sevicioUsuario.obtenerProyectosActivos();
+            const obtenerProyectos: any = await this.sevicioUsuario.obtenerProyectosActivos();
             res.status(HttpStatus.OK).json(obtenerProyectos)
 
         } catch (error) {
             console.error(error.message);
-            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
 
     }
 
     @ApiTags('Proyectos-usuarios')
     @Get('/proyectos-de-usuario')
-    async obtenerListaProyectoUsuario(@Body() usuario: ProyectoIdUsuario, @Res() res: Response) {
-        try {
-            const obtenerProyectosDelUsuario = await this.sevicioUsuario.obtenerProyectosUsuario(usuario.idUsuario);
-            res.status(HttpStatus.OK).json(obtenerProyectosDelUsuario)
-
-        } catch (error) {
-            console.error(error.message);
-            res.status(error.getStatus()).json({ mensaje: MensajeAlerta.UPS, err: error.message });
-        }
-
+    @ApiQuery({
+        name: 'id',
+        type: 'number',
+        description: 'ID del usuario para obtener información de proyectos activos',
+        example: 8,
+        required: true,
+    })
+    @ApiOkResponse({ type: InformacionProyecto, description: 'Respuesta exitosa' })
+    async obtenerListaProyectoUsuario(@Query('id') idUsuario: number, @Res() res: Response) {
+        // Tu lógica para obtener la lista de proyectos por usuario
+        const listaProyectos: InformacionProyecto = await this.sevicioUsuario.obtenerProyectosUsuario(idUsuario);
+        res.status(HttpStatus.OK).json(listaProyectos);
     }
 
-    async validarIdRol(idRol: number): Promise<void> {
-        const existeIdRol = await this.serivioRol.ExisteIdRol(idRol);
-        if (existeIdRol) {
-            throw new NotFoundException(`El id del rol '${idRol}' no existe.`);
-        }
-    }
-
-    async validarIdentificacion(identificacion: string, idUsuario: number): Promise<void> {
-        const existeIdentificacion = await this.sevicioUsuario.existeIdentificacion(identificacion, idUsuario);
-        if (existeIdentificacion) {
-            throw new NotFoundException(`La identificación '${identificacion}' ya se encuentra asociada a un usuario.`);
-        }
-    }
-
-    async validarEmail(correo: string, idUsuario: number): Promise<void> {
-        const existeEmail = await this.sevicioUsuario.existeEmail(correo, idUsuario);
-        if (existeEmail) {
-            throw new NoAutorizadoException(`El correo '${correo}' ya se encuentra asociado a un usuario.`);
-        }
-    }
-
-    async validarProyecto(idProyecto: number[]): Promise<void> {
-        const existeProyecto = await this.sevicioUsuario.existeProyecto(idProyecto);
-        if (!existeProyecto) {
-            throw new NotFoundException('Por favor, verifique que los proyectos existan.');
-        }
-    }
-
-    async excepcionesRegistroUsuarios(usuario: DatosUsuario): Promise<void> {
-        await this.validarIdRol(usuario.idRol);
-        await this.validarIdentificacion(usuario.identificacion, usuario.idUsuario);
-        await this.validarEmail(usuario.correo, usuario.idUsuario);
-        await this.validarProyecto(usuario.idProyecto);
-    }
-
-
-    async validacionRolActualizar(rol: RolEstado): Promise<{ success: boolean, status: number, message?: string, response: string }> {
-
-        const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol);
-        const ValidacionRoLigado = await this.serivioRol.existeusuarioLigadoRol(rol.idRol);
-
-        if (ExisteIdRol) {
-            return { success: false, status: 401, message: `El id del rol '${rol.idRol}' no existe.`, response: 'no' };
-        }
-
-        if (ValidacionRoLigado) {
-            return { success: false, status: 401, message: `Este rol no se puede deshabilitar, debido a que se encuentra asociado a usuarios activos.`, response: 'no' };
-        }
-
-        return { success: true, status: 200, response: 'ok' };
-    }
 
 }
 
 
-class NoAutorizadoException extends Error {
-    status: number;
-    constructor(message: string = "No tienes autorización para realizar esta acción") {
-        super(message);
-        this.name = "NoAutorizadoException";
-        this.status = 401;
-    }
-}

@@ -15,3 +15,9 @@ export enum RegistroUsuario {
     EXITOSO = 'Usuario registrado exitosamente',
 
 }
+
+export enum Estado {
+    Inactivo = '0',
+    Activo = '1',
+}
+
