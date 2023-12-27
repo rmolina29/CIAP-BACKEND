@@ -14,11 +14,12 @@ export class CrudUsuarioService {
     private readonly SQL_INSERT_DATOS_PERSONALES = `INSERT INTO usuario_datos_personales (id_usuario, identificacion, nombres, apellidos, correo) VALUES (?, ?, ?, ?, ?)`;
     private readonly SQL_ACTUALIZAR_DATOS_PEROSONALES = `UPDATE usuario_datos_personales SET identificacion = ? ,nombres = ? ,apellidos = ?, correo = ? , ultimo_actualizacion = NOW()  WHERE id_usuario = ?`
     private readonly SQL_ACTUALIZAR_ROL_USUARIO = `UPDATE usuario_auth SET id_rol = ? WHERE id = ?`;
-    private readonly SQL_CUENTAS_USUARIO = `SELECT ua.id as id_usuario, ua.nombre_usuario as usuario, udp.identificacion, udp.nombres as nombre, udp.apellidos,udp.correo,ur.id as id_rol, ur.tipo as rol ,ua.estado
+    private readonly SQL_CUENTAS_USUARIO = `	SELECT ua.id as id_usuario, ua.nombre_usuario as usuario, udp.identificacion, udp.nombres as nombre, udp.apellidos,udp.correo,ur.id as id_rol, ur.tipo as rol,ur.estado as estado_rol,ur.fechasistema as fechasistema_rol ,ua.estado as estado_cuenta
     FROM usuario_auth ua 
     JOIN usuario_datos_personales udp ON ua.id = udp.id_usuario
     JOIN usuario_rol ur ON ua.id_rol = ur.id 
-    ORDER BY ua.id;`;
+    ORDER BY ua.id;
+`;
 
 
     private readonly SQL_ACTUALIZAR_ESTADO_CUENTA = "UPDATE usuario_auth set estado = ? WHERE id = ?"
@@ -275,7 +276,7 @@ export class CrudUsuarioService {
         // se realiza el filtro de lo que devuelve la consulta por el id de proyectos para contenerla en un array.
         let idProyectosExistentes: number[] = proyectosusuario.map((proyecto: { proyecto_id: number; }) => proyecto.proyecto_id);
         const existeProyectos = this.comparacionArray(idProyectosExistentes, usuario.idProyecto)
- 
+
         if (idProyectosExistentes.length === 0) {
             return
         }
@@ -304,18 +305,16 @@ export class CrudUsuarioService {
     async proyectoActualizacionPorUsuario(usuario: DatosUsuario, idProyectosExistentes: number[]) {
 
         let idUsuario = usuario.idUsuario.toString();
-        // comparacion entre los proyetcos que tiene asignado el usuario contra los proyectos que se actualizaran, me devolvera los proyectos que no estan asignados en la actualizacion
+        // comparacion entre los proyectos que tiene asignado el usuario contra los proyectos que se actualizaran, me devolvera los proyectos que no estan asignados en la actualizacion
         const proyectosActualizar = this.proyectoscambio(usuario.idProyecto, idProyectosExistentes)
         // se registra los nuevos proyectos y a los otros se le asignara estado 0 es decir desactivados
-        console.log(proyectosActualizar);
-        
+
         if (proyectosActualizar.length > 0) {
             await this.conexion.query(this.SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO, [idUsuario, proyectosActualizar.join(', ')])
         }
 
         // realiza la comparacion de los proyectos nuevos en comparacion a los que ya tiene asignados el usuario y le devolvera los que no se encuentran asignados
         const nuevosProyectos = this.proyectoscambio(idProyectosExistentes, usuario.idProyecto)
-        console.log(nuevosProyectos);
         if (nuevosProyectos.length > 0) {
             await this.registroProyectoUsuario(idUsuario, nuevosProyectos);
         }

@@ -14,7 +14,8 @@ export class DatabaseService {
                 password: process.env.DB_PASSWORD,
                 database: process.env.DB_DATABASE,
                 port: parseInt(process.env.DB_PORT),
-                connectTimeout:5000
+                connectTimeout:10000,
+                
             });
         }
     }

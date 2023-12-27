@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { ArrayMinSize, IsEmail, IsIn, IsOptional, Matches } from "class-validator";
+import { ArrayMinSize, IsEmail, IsIn, IsOptional, Matches, MaxLength, MinLength } from "class-validator";
 import { validacionTipadoNumVacios, validacionTipoStringVacios } from "src/dtoValidation/validacionesGlobalesDto";
 import { Estado } from "src/mensajes_usuario/mensajes-usuario.enum";
 
@@ -20,6 +20,8 @@ export class DatosUsuario {
 
     @ApiProperty({ example: '1005081321', description: 'identificacion del usuario.', required: true, uniqueItems: true })
     @validacionTipoStringVacios('la identificacion del usuario debe ser string', 'la identifiacion el usuario no pueden estar vacíos')
+    @MinLength(4,{message:'la cedula debe tener mas de 4 cifras'})
+    @MaxLength(11,{message:'La cedula debe tener maximo 11 caracteres'})
     identificacion: string;
 
     @ApiProperty({ example: '2', description: 'rol que se le asignara del usuario.', required: true })
