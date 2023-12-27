@@ -10,6 +10,7 @@ import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ValidacionService } from './validaciones_crudUsuario/validaciones_usuario_crud.service';
 import { GuardsGuard } from './guards/guards.guard';
 import { RolMenuService } from './rol-menu/rol-menu.service';
+import { PermisosRol } from './rol-menu/dto/rol-menu.dto';
 
 
 @Controller('/usuario')
@@ -107,9 +108,9 @@ export class CrudUsuarioController {
             const validacionRol = await this.validacionService.rolActualizar(rol);
 
             if (!validacionRol.success) {
-                return res.status(validacionRol.status).json(validacionRol);
+                return res.status(200).json(validacionRol);
             }
-            
+
             await this.serivioRol.actualizarEstadoRol(rol);
 
             const response = rol.estado === TipoEstado.ACTIVO ? 'rol activado' : 'rol desactivado';
@@ -181,15 +182,30 @@ export class CrudUsuarioController {
     @ApiTags('Roles')
     @Post('/rol/permisos')
     @ApiOkResponse({ description: 'Respuesta exitosa' })
-    async RegistrarPermisosRol(@Body() permisos: any, @Res() res: Response) {
+    async registrarPermisos(@Body() permisos: PermisosRol, @Res() res: Response) {
         try {
             // .
-
+            await this.serviciRoloMenu.actualizarPermisosRol(permisos)
+            return res.status(HttpStatus.OK).json({ response: 'ok' })
         } catch (error) {
             console.error(error.message);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
     }
+
+    // @ApiTags('Roles')
+    // @Put('/rol/permisos')
+    // @ApiOkResponse({ description: 'Respuesta exitosa' })
+    // async actualizarPermisos(@Body() permisos: PermisosRol, @Res() res: Response) {
+    //     try {
+    //         // .
+    //         await this.serviciRoloMenu.actualizarPermisosRol(permisos)
+    //         return res.status(HttpStatus.OK).json({ response: 'ok' })
+    //     } catch (error) {
+    //         console.error(error.message);
+    //         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
+    //     }
+    // }
 
     // crud de usuarios
     // Se registrara el usuario, rol asignado al usuario y proyectos
@@ -199,11 +215,6 @@ export class CrudUsuarioController {
     @ApiBody({ type: DatosUsuario, description: 'Se hara el registro de ususarios.' })
     async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
-            // const validacionesRegistro = await this.validacionService.excepcionesRegistroUsuarios(usuario);
-            // if (!validacionesRegistro.success) {
-            //     return res.status(validacionesRegistro.status).json(validacionesRegistro);
-
-            // }
             const datosUsuario = await this.sevicioUsuario.registrarUsuario(usuario);
             const htmlCuerpoRegistro = this.servicioEnvioCorreo.CuerpoRegistroUsuario(datosUsuario.nuevoNombreUsuario, datosUsuario.contrasenaUsuario, usuario);
             this.servicioEnvioCorreo.envio_correo(htmlCuerpoRegistro, usuario.correo);
@@ -221,17 +232,10 @@ export class CrudUsuarioController {
     @ApiBody({ type: DatosUsuario, description: 'Se hara la actualizacion de ususarios.' })
     async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
-            // obtiene las validaciones de si el usuario no cotenga informacion que ya este registrada
-            // const validacionActualizacion = await this.validacionService.excepcionesRegistroUsuarios(usuario);
-
-            // if (!validacionActualizacion.success) {
-            //     return res.status(validacionActualizacion.status).json(validacionActualizacion);
-            // }
-
             await this.sevicioUsuario.actualizarUsuarios(usuario);
             res.status(HttpStatus.OK).json({ id: usuario.idUsuario, mensaje: "usuario actualizado exitosamente.", status: RespuestaPeticion.OK });
         } catch (error) {
-            res.status(error.status).json({ err: MensajeAlerta.UPS, mensaje: error.message, status });
+            res.status(error.status).json({ err: MensajeAlerta.UPS, mensaje: error.message });
         }
 
     }

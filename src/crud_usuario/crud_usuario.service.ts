@@ -178,8 +178,6 @@ export class CrudUsuarioService {
         return [contrasenaEncriptada, generacionContrasena]
     }
 
-
-
     //validacion de comprobar si existe un proyecto
     async existeProyecto(idProyectos: number[]): Promise<boolean> {
 
@@ -274,13 +272,13 @@ export class CrudUsuarioService {
 
         const proyectosusuario = await this.obtenerProyectosUsuario(usuario.idUsuario);
 
+        // se realiza el filtro de lo que devuelve la consulta por el id de proyectos para contenerla en un array.
         let idProyectosExistentes: number[] = proyectosusuario.map((proyecto: { proyecto_id: number; }) => proyecto.proyecto_id);
-        const existeProyectos = this.comparacionProyectosUsuario(idProyectosExistentes, usuario.idProyecto)
-
+        const existeProyectos = this.comparacionArray(idProyectosExistentes, usuario.idProyecto)
+ 
         if (idProyectosExistentes.length === 0) {
             return
         }
-
         // se valida si hay algun cambio en los proyectos
         if (!existeProyectos) {
             await this.proyectoActualizacionPorUsuario(usuario, idProyectosExistentes);
@@ -289,7 +287,7 @@ export class CrudUsuarioService {
 
 
     // se hace la comparacion entre los proyectos de bd asignados a los usuarios con los que se actualizaran
-    comparacionProyectosUsuario = (proyectosExistentes: any[], proyectosActualizar: any[]): boolean => {
+    comparacionArray = (proyectosExistentes: any[], proyectosActualizar: any[]): boolean => {
         const ProyectosA = new Set(proyectosExistentes);
         const ProyectosB = new Set(proyectosActualizar);
 
@@ -309,13 +307,15 @@ export class CrudUsuarioService {
         // comparacion entre los proyetcos que tiene asignado el usuario contra los proyectos que se actualizaran, me devolvera los proyectos que no estan asignados en la actualizacion
         const proyectosActualizar = this.proyectoscambio(usuario.idProyecto, idProyectosExistentes)
         // se registra los nuevos proyectos y a los otros se le asignara estado 0 es decir desactivados
-
+        console.log(proyectosActualizar);
+        
         if (proyectosActualizar.length > 0) {
             await this.conexion.query(this.SQL_UPDATE_DESACTIVAR_PROYECTOS_USUARIO, [idUsuario, proyectosActualizar.join(', ')])
         }
 
         // realiza la comparacion de los proyectos nuevos en comparacion a los que ya tiene asignados el usuario y le devolvera los que no se encuentran asignados
         const nuevosProyectos = this.proyectoscambio(idProyectosExistentes, usuario.idProyecto)
+        console.log(nuevosProyectos);
         if (nuevosProyectos.length > 0) {
             await this.registroProyectoUsuario(idUsuario, nuevosProyectos);
         }

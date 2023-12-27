@@ -80,6 +80,8 @@ export class ValidacionService {
             return { success: false, status: 404, message: `El id del rol '${rol.idRol}' no existe.`, response: 'no' };
         }
 
+        console.log(ValidacionRoLigado);
+        
         if (ValidacionRoLigado) {
             return { success: false, status: 401, message: `Este rol no se puede deshabilitar, debido a que se encuentra asociado a usuarios activos.`, response: 'no' };
         }

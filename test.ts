@@ -1,25 +1,17 @@
 
-let proyectosUsuarioAsignados = [2, 3];
-let proyectosParaActualizar = [3];
-
-//update proyectos a desactivar, es decir se le cambiara sus estados
-function proyectosNuevos(proyectosAsignados, proyectosActualizar) {
-    const diferencia = proyectosActualizar.filter(idProyecto => !proyectosAsignados.includes(idProyecto));
-    return diferencia;
+let request = {
+    "id_rol": 1,
+    "menus": [
+        { "id_menu": 1, "id_permisos": [1, 2, 3, 5] },
+        { "id_menu": 2, "id_permisos": [3, 2, 4] }
+    ]
 }
 
-//insertart
-const result = proyectosNuevos(proyectosUsuarioAsignados,proyectosParaActualizar);
-
-// update
-const result2 = proyectosNuevos(proyectosParaActualizar,proyectosUsuarioAsignados);
 
 
-console.log(result);
-console.log(result2);
 
-
-// proyectoscambio(proyectosParaFiltro: number[], proyectosComparacion: number[]) {
-//     const proyectosUsuarios = proyectosComparacion.filter(conjuntoIdProyectos => !proyectosParaFiltro.includes(conjuntoIdProyectos));
-//     return proyectosUsuarios;
-// }
+let request2 = {
+    "id_rol": 1,
+    "id_menu": [2, 3],
+    "id_permisos": [[1, 2, 3, 4], [1, 3, 4]]
+}
