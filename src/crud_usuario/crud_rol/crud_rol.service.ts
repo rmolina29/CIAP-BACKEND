@@ -9,10 +9,9 @@ export class CrudRolService {
     private conexion: Connection;
     constructor(private readonly dbConexionServicio: DatabaseService) { }
 
-    async regisrtrarRol(rol: string): Promise<any> {
+    async registrarRol(rol: string): Promise<any> {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
-
             this.conexion = this.dbConexionServicio.getConnection();
 
             let rolRegistro = rol ?? '';
@@ -26,9 +25,7 @@ export class CrudRolService {
         } catch (error) {
             console.error('problema en la base de datos');
             throw new Error(`error de servidor: ${error}`);
-        } finally {
-            await this.dbConexionServicio.closeConnection();
-        }
+        } 
 
     }
 

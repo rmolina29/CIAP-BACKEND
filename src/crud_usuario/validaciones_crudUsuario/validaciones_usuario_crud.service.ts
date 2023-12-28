@@ -17,6 +17,14 @@ export class ValidacionService {
         return { success: true };
     }
 
+    async validardRolExiste(nombreRol: string): Promise<{ success: boolean, status?: number, message?: string }> {
+        const existeIdRol = await this.serivioRol.verificacionRolExiste(nombreRol);
+        if (existeIdRol) {
+            return { success: false, status: 404, message: `El rol '${nombreRol}' ya se encuentra registrado.` };
+        }
+        return { success: true };
+    }
+
 
     async validarIdentificacion(identificacion: string, idUsuario: number): Promise<{ success: boolean, status?: number, message?: string }> {
         const existeIdentificacion = await this.sevicioUsuario.existeIdentificacion(identificacion, idUsuario);
@@ -42,6 +50,19 @@ export class ValidacionService {
         return { success: true };
     }
 
+    async validarProyectoExisteUsuario(idUsuario: number): Promise<{ success: boolean, status?: number, message?: string }> {
+        const existeProyecto = await this.sevicioUsuario.obtenerProyectosUsuario(idUsuario);
+
+        if (existeProyecto.length === 0) {
+            return {
+                success: false,
+                message: 'El usuario no tiene proyectos asignados por favor verificar con el personal encargado',
+                status: 401
+            }
+        }
+        return { success: true };
+    }
+
     async excepcionesRegistroUsuarios(usuario: DatosUsuario): Promise<{ success: boolean, status?: number, message?: string }> {
 
         let idUsuario = usuario.idUsuario ?? 0;
@@ -50,6 +71,12 @@ export class ValidacionService {
         const validacionIdentificacion = await this.validarIdentificacion(usuario.identificacion, idUsuario);
         const validacionEmail = await this.validarEmail(usuario.correo, idUsuario);
         const validacionProyecto = await this.validarProyecto(usuario.idProyecto);
+        const validarProyectosUsuario = await this.validarProyectoExisteUsuario(usuario.idUsuario);
+        // se realiza el filtro de lo que devuelve la consulta por el id de proyectos para contenerla en un array.
+
+        if (!validarProyectosUsuario.success) {
+            return validarProyectosUsuario;
+        }
 
         if (!validacionIdRol.success) {
             return validacionIdRol;
@@ -81,15 +108,15 @@ export class ValidacionService {
         }
 
         console.log(ValidacionRoLigado);
-        
+
         if (ValidacionRoLigado) {
             return { success: false, status: 401, message: `Este rol no se puede deshabilitar, debido a que se encuentra asociado a usuarios activos.`, response: 'no' };
         }
 
         return { success: true, status: 200, response: 'ok' };
     }
-    
- 
+
+
 }
 
 

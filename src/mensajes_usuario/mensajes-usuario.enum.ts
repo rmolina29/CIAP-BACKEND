@@ -1,6 +1,6 @@
 export enum MensajeAlerta {
     ERROR = 'lo sentimos, algo salio mal',
-    UPS = 'Hemos encontrado un problema'
+    UPS = 'Lo sentimos, no podemos completar la operación en este momento.'
 }
 export enum RespuestaPeticion {
     OK = 'ok'
@@ -11,8 +11,9 @@ export enum TipoEstado {
     ACTIVO = 1,
     CONTRASENA_PRIMERA_VEZ = 0
 }
-export enum RegistroUsuario {
-    EXITOSO = 'Usuario registrado exitosamente',
+export enum Registro {
+    EXITOSO = 'Usuario registrado exitosamente.',
+    EXITOSO_PERMISO_ROL = 'Permiso actualizado exitosamente.',
 
 }
 

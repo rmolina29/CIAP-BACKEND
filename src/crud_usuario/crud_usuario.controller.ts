@@ -4,13 +4,14 @@ import { CrudUsuarioService } from './crud_usuario.service';
 import { Response } from 'express';
 import { DataRol, RolEstado, RolMenu, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
 import { CuentasUsuario, DatosUsuario, EstadoUsuario, InformacionProyecto, ProyectoIdUsuario, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
-import { MensajeAlerta, RegistroUsuario, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
+import { MensajeAlerta, Registro, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
 import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ValidacionService } from './validaciones_crudUsuario/validaciones_usuario_crud.service';
 import { GuardsGuard } from './guards/guards.guard';
 import { RolMenuService } from './rol-menu/rol-menu.service';
-import { PermisosRol } from './rol-menu/dto/rol-menu.dto';
+import { PermisosRol, Permisos, MenuRol, RegistrarRolPermios } from './rol-menu/dto/rol-menu.dto';
+import { GuardsRolGuard } from './guards/guard_rol_permisos.guard';
 
 
 @Controller('/usuario')
@@ -36,36 +37,17 @@ export class CrudUsuarioController {
     // se crean los roles
     @ApiTags('Roles')
     @Post('/rol/registro')
-    @ApiBody({ type: bodyRolRegistro, description: 'Obtiene todos los roles ya esten activos o inactivos.' })
-    async rolRegistro(@Body() body: bodyRolRegistro, @Res() res: Response) {
-
+    @ApiBody({ type: RegistrarRolPermios, description: 'Se hace el registro de los roles y se le atorgan permisos.' })
+    @ApiOkResponse({ status: 201, description: 'Respuesta exitosa' })
+    @UseGuards(GuardsRolGuard)
+    async rolRegistro(@Body() body: RegistrarRolPermios, @Res() res: Response) {
         try {
-            let nombreRol = body.nombreRol;
-
-            const verificacionExisteRol = await this.serivioRol.verificacionRolExiste(nombreRol);
-
-            const respuestaRegistro: responseRolRegistro = verificacionExisteRol ?
-                {
-                    status: 'no',
-                    mensaje: `el rol ${nombreRol} ya existe.`,
-                    respuestHttp: HttpStatus.OK
-                } :
-                (
-                    await this.serivioRol.regisrtrarRol(nombreRol),
-                    {
-                        status: 'ok',
-                        mensaje: `el rol ${nombreRol} se ha registrado correctamente.`,
-                        respuestHttp: HttpStatus.ACCEPTED
-                    }
-                )
-
-            res.status(respuestaRegistro.respuestHttp).json(respuestaRegistro)
-
+            await this.serviciRoloMenu.registrarRolPermisos(body)
+            res.status(HttpStatus.CREATED).json({ mensaje: 'El rol se ha registrado exitosamente', status: RespuestaPeticion.OK })
         } catch (error) {
             console.error(error.message);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
-
     }
 
     // se actualiza el nombre del rol
@@ -129,7 +111,7 @@ export class CrudUsuarioController {
     // rol menu
     @ApiTags('Roles')
     @Get('/rol/menu')
-    @ApiBody({ description: 'Se obtiene la informacion del menu de los roles.' })
+    @ApiOkResponse({ type: MenuRol })
     async rolMenu(@Res() res: Response) {
         try {
             // .
@@ -144,7 +126,7 @@ export class CrudUsuarioController {
     // rol permisos asignados
     @ApiTags('Roles')
     @Get('/rol/menu-permisos')
-    @ApiBody({ description: 'Se obtiene la informacion de de los permisos que se le podran asignar a los roles.' })
+    @ApiOkResponse({ type: Permisos })
     async menuPermisos(@Res() res: Response) {
         try {
             // .
@@ -170,6 +152,8 @@ export class CrudUsuarioController {
     async permisosRol(@Query('id') idRol: number, @Res() res: Response) {
         try {
             // .
+            console.log(idRol);
+            
             const datosRolPermisos = await this.serviciRoloMenu.obtenerPermisosDelRol(idRol);
             res.status(HttpStatus.OK).json(datosRolPermisos);
 
@@ -181,31 +165,18 @@ export class CrudUsuarioController {
 
     @ApiTags('Roles')
     @Post('/rol/permisos')
+    @ApiBody({ type: PermisosRol, description: 'Se enviara el id del rol que se le actualizara y los menus a cambiar.' })
     @ApiOkResponse({ description: 'Respuesta exitosa' })
     async registrarPermisos(@Body() permisos: PermisosRol, @Res() res: Response) {
         try {
             // .
             await this.serviciRoloMenu.actualizarPermisosRol(permisos)
-            return res.status(HttpStatus.OK).json({ response: 'ok' })
+            return res.status(HttpStatus.OK).json({ mensaje: Registro.EXITOSO_PERMISO_ROL, status: RespuestaPeticion.OK })
         } catch (error) {
             console.error(error.message);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
         }
     }
-
-    // @ApiTags('Roles')
-    // @Put('/rol/permisos')
-    // @ApiOkResponse({ description: 'Respuesta exitosa' })
-    // async actualizarPermisos(@Body() permisos: PermisosRol, @Res() res: Response) {
-    //     try {
-    //         // .
-    //         await this.serviciRoloMenu.actualizarPermisosRol(permisos)
-    //         return res.status(HttpStatus.OK).json({ response: 'ok' })
-    //     } catch (error) {
-    //         console.error(error.message);
-    //         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });
-    //     }
-    // }
 
     // crud de usuarios
     // Se registrara el usuario, rol asignado al usuario y proyectos
@@ -219,7 +190,7 @@ export class CrudUsuarioController {
             const htmlCuerpoRegistro = this.servicioEnvioCorreo.CuerpoRegistroUsuario(datosUsuario.nuevoNombreUsuario, datosUsuario.contrasenaUsuario, usuario);
             this.servicioEnvioCorreo.envio_correo(htmlCuerpoRegistro, usuario.correo);
 
-            res.status(HttpStatus.OK).json({ mensaje: RegistroUsuario.EXITOSO, status: RespuestaPeticion.OK });
+            res.status(HttpStatus.OK).json({ mensaje: Registro.EXITOSO, status: RespuestaPeticion.OK });
         } catch (error) {
             console.error(error.message);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ mensaje: MensajeAlerta.UPS, err: error.message });

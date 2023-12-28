@@ -1,7 +1,10 @@
 import { CanActivate, ExecutionContext, HttpStatus, Injectable } from '@nestjs/common';
 import { ValidacionService } from '../validaciones_crudUsuario/validaciones_usuario_crud.service';
+import { MensajeAlerta, RespuestaPeticion } from 'src/mensajes_usuario/mensajes-usuario.enum';
 
 
+
+// este guardian me valida el registro y actualizacion de usuarios
 @Injectable()
 export class GuardsGuard implements CanActivate {
   constructor(private readonly validacionService: ValidacionService) { }
@@ -17,8 +20,8 @@ export class GuardsGuard implements CanActivate {
       const response = context.switchToHttp().getResponse();
       response.status(HttpStatus.OK).json({
         success: false,
-        status: 'ok',
-        message: `Problema de validación: ${validacionUsuario.message}`,
+        status: RespuestaPeticion.OK,
+        message: `${MensajeAlerta.UPS}, ${validacionUsuario.message}`,
       });
 
       return false; // Devuelve falso para indicar que la validación falló
@@ -27,6 +30,8 @@ export class GuardsGuard implements CanActivate {
     return true;
   }
 }
+
+// Guardian para actualizar el rol
 @Injectable()
 export class GuardRolActualizar implements CanActivate {
   constructor(private readonly validacionService: ValidacionService) { }
@@ -42,8 +47,8 @@ export class GuardRolActualizar implements CanActivate {
       const response = context.switchToHttp().getResponse();
       response.status(HttpStatus.OK).json({
         success: false,
-        status: 'ok',
-        message: `Problema de validación: ${validacionUsuario.message}`,
+        status: RespuestaPeticion.OK,
+        message: `${MensajeAlerta.UPS}, ${validacionUsuario.message}`,
       });
 
       return false; // Devuelve falso para indicar que la validación falló

@@ -6,6 +6,7 @@ import { sha256 } from 'js-sha256';
 import * as randomatic from 'randomatic';
 import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
 
+
 @Injectable()
 export class CrudUsuarioService {
 
@@ -231,14 +232,12 @@ export class CrudUsuarioService {
 
     async obtenerProyectosUsuario(idUsuario: number) {
         try {
+
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
             // se actualizara la informacion de datos personales 
             const usuarioProyectos = await this.conexion.query(this.SQL_SELECT_PROYECTOS_POR_USUARIO, [idUsuario]);
-            // se actualiza el rol
-            const proyectosActivos = usuarioProyectos.length > 0 ? usuarioProyectos : { mensaje: 'no se encontraron proyectos activos con referente a este usuario.', status: 'ok' };
-
-            return proyectosActivos;
+            return usuarioProyectos;
 
         } catch (error) {
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
@@ -251,7 +250,6 @@ export class CrudUsuarioService {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
-
 
             // se actualizara la informacion de datos personales
 
@@ -270,11 +268,10 @@ export class CrudUsuarioService {
     }
 
     async actualizarProyectoUsuario(usuario: DatosUsuario) {
-
         const proyectosusuario = await this.obtenerProyectosUsuario(usuario.idUsuario);
 
-        // se realiza el filtro de lo que devuelve la consulta por el id de proyectos para contenerla en un array.
         let idProyectosExistentes: number[] = proyectosusuario.map((proyecto: { proyecto_id: number; }) => proyecto.proyecto_id);
+
         const existeProyectos = this.comparacionArray(idProyectosExistentes, usuario.idProyecto)
 
         if (idProyectosExistentes.length === 0) {

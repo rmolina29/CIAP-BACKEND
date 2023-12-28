@@ -2,9 +2,10 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { Connection } from 'mariadb';
-import { RolMenu } from '../crud_rol/dto/rol.dto';
-import { PermisosRol } from './dto/rol-menu.dto';
+import { RolMenu, responseRolRegistro } from '../crud_rol/dto/rol.dto';
+import { Menu, PermisosRol, RegistrarRolPermios } from './dto/rol-menu.dto';
 import { CrudUsuarioService } from '../crud_usuario.service';
+import { CrudRolService } from '../crud_rol/crud_rol.service';
 
 @Injectable()
 export class RolMenuService {
@@ -19,6 +20,14 @@ export class RolMenuService {
 
                                             `;
     private readonly SQL_SELECT_OBTENER_PERMISOS_DEL_ROL = `SELECT men.id as id_menu, men.descripcion as menu,  men.id_menu_padre,
+	IFNULL( 
+	(SELECT GROUP_CONCAT(mp.id) 
+                FROM menu_rol mr
+                JOIN menu m ON m.id = mr.menu_id 
+                JOIN menu_permisos mp ON mp.id = mr.permiso_id 
+                WHERE m.id = men.id
+                GROUP by m.id
+	) ,'N/A') as permisos,	
     ifnull(t.id_rol,'NA') as id_rol,
     ifnull(t.id_permisos,'NA') as id_permiso,
     ifnull(t.permiso,'NA') as permiso,
@@ -29,23 +38,17 @@ export class RolMenuService {
                 JOIN menu m ON m.id = mr.menu_id 
                 JOIN menu_permisos mp ON mp.id = mr.permiso_id 
                 WHERE mr.usuario_rol_id = ? AND mr.estado = 1
-                ORDER BY m.id ASC) t on t.id_menu = men.id; `;
+                ORDER BY m.id ASC) t on t.id_menu = men.id      
+               	GROUP by men.id; `;
 
     private readonly SQL_SELECT_OBTENER_PERMISOS_POR_ROL = 'SELECT menu_id,permiso_id  FROM menu_rol WHERE estado = 1 AND usuario_rol_id = ? ORDER BY menu_id ASC;';
 
-    private readonly SQL_UPDATE_ACTUALIZAR_ESTADO_ROL_PERMISO = `
-                                        UPDATE menu_rol
-                                            SET estado = 0
-                                            WHERE usuario_rol_id = ?
-                                            AND menu_id IN (?)
-                                            AND permiso_id IN (?)
-                                    `;
 
     conexion: Connection;
 
 
     // servicios a usar
-    constructor(private readonly dbConexionServicio: DatabaseService, private readonly crudUsuarioService: CrudUsuarioService) { }
+    constructor(private readonly dbConexionServicio: DatabaseService, private readonly crudUsuarioService: CrudUsuarioService, private readonly serivioRol: CrudRolService) { }
 
     async obtenerMenu(): Promise<RolMenu> { // se obtiene todos los menu
         try {
@@ -85,6 +88,8 @@ export class RolMenuService {
             this.conexion = this.dbConexionServicio.getConnection();
 
             const permisosDelRol = await this.conexion.query(this.SQL_SELECT_OBTENER_PERMISOS_DEL_ROL, [idRol]);
+            console.log(permisosDelRol, idRol);
+
             return permisosDelRol;
 
         } catch (error) {
@@ -111,19 +116,22 @@ export class RolMenuService {
 
     }
 
+
+    // permisos que envia el usuario desde la aplicacion los obtengo desde el request
+    // los agrupo en un array y me quedaraia de forma [1,2,3,4] array plano. 
+    //la posicion 0 y pares son los id_menu y las posiciones impares serian los permisos
+    agruparPermisosRol(menus: Menu) {
+        return menus.flatMap((menu: { id_permisos: any[]; id_menu: any; }) => menu.id_permisos.map((permisoId) => [menu.id_menu, permisoId])).flat();
+    }
+
     async actualizarPermisosRol(permisos: PermisosRol) {
         // agrupamos de los permiso que me envia el usuario el idRol y los menus 
         const { idRol, menus } = permisos;
 
         try {
-
-            // permisos que envia el usuario desde la aplicacion los obtengo desde el request
-            // los agrupo en un array y me quedaraia de forma [1,2,3,4] array plano.
-            const permisosRolUsuario = menus.flatMap((menu) => menu.id_permisos.map((permisoId) => [menu.id_menu, permisoId])).flat();;
-
+            const permisosRolUsuario = this.agruparPermisosRol(menus);
             // obtengo en una consulta todos los permisos que tiene actualmente el rol activos.
             const obtenerRolesPermisosAsignados: any[] = await this.obtenerPermisosRoles(idRol);
-
 
             // if (obtenerRolesPermisosAsignados.length === 0) {
             //     console.log('no existen permisos en el rol');
@@ -138,22 +146,7 @@ export class RolMenuService {
 
 
             if (!existenRolesUsuario) {
-
-                const rolMenuUsuario = this.compararPares(permisosActualesDelRol, permisosRolUsuario);
-                const permisosRolesActualizar: number[] = rolMenuUsuario;
-
-                console.log("actualizar: ", permisosRolesActualizar);
-
-                if (permisosRolesActualizar.length > 0) {
-                    await this.actualizarEstadoRol(idRol, permisosRolesActualizar);
-                }
-
-                const permisosRolesInsertar: number[] = this.compararPares(permisosRolUsuario, permisosActualesDelRol);
-                console.log("insertar: ", permisosRolesInsertar);
-
-                if (permisosRolesInsertar.length > 0) {
-                    await this.registrarPermisosRol(idRol, permisosRolesInsertar);
-                }
+                await this.procesarInformacionPermisosRole(idRol, permisosActualesDelRol, permisosRolUsuario);
             }
 
         } catch (error) {
@@ -164,33 +157,57 @@ export class RolMenuService {
         }
     }
 
+    async procesarInformacionPermisosRole(idRol: number, permisosActualesDelRol: number[], permisosRolUsuario: number[]) {
+
+        const rolMenuUsuario = this.compararPares(permisosActualesDelRol, permisosRolUsuario);
+        const permisosRolesActualizar: number[] = rolMenuUsuario;
+
+
+        if (permisosRolesActualizar.length > 0) {
+            await this.actualizarEstadoRol(idRol, permisosRolesActualizar);
+        }
+
+        const permisosRolesInsertar: number[] = this.compararPares(permisosRolUsuario, permisosActualesDelRol);
+
+        if (permisosRolesInsertar.length > 0) {
+            await this.registrarPermisosRol(idRol, permisosRolesInsertar);
+        }
+    }
+
     async actualizarEstadoRol(idRol: number, permisosRolesActualizar: number[]) {
         //Me filtra por las posiciones pares teniendo en cuenta que inicia por el 0 es decir [1,2,3,4] me devuelve el array [1,3].
         const menuId = permisosRolesActualizar.filter((_, index) => index % 2 === 0);
         //Me devuelve lo contrario, es decir las posiciones impares ejemplo -> [1,2,3,4] me devuelve el array [2,4] posicion 1 y 3.
         const permisosId = permisosRolesActualizar.filter((_, index) => index % 2 !== 0);
 
-        try {
-            await this.conexion.query(this.SQL_UPDATE_ACTUALIZAR_ESTADO_ROL_PERMISO, [idRol, menuId.join(','), permisosId.join(',')]);
-        } catch (error) {
+        const menuJoinid = menuId.join(',');
+        const permisosJoinId = permisosId.join(',');
 
+        try {
+            const query = `UPDATE menu_rol SET estado = 0 WHERE usuario_rol_id = ${idRol} AND menu_id IN (${menuJoinid}) AND permiso_id IN (${permisosJoinId})`;
+            await this.conexion.query(query);
+
+        } catch (error) {
+            console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+            throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
         }
 
     }
 
     async registrarPermisosRol(idRol: number, permisosRegistro: number[]) {
 
+        this.conexion = await this.dbConexionServicio.connectToDatabase()
+        this.conexion = this.dbConexionServicio.getConnection();
         // me realiza el filtro por pares y me los separa de dos datos ejemplo -> [1,2,3,4] me devolvera (1,2) (3,4)
         const permisosRolesAgregar = permisosRegistro
             .map((valor, indice, array) => (indice % 2 === 0 ? `(${idRol},${valor},${array[indice + 1]})` : null))
             .filter((par) => par !== null);
 
-
         // aqui realizo la union de los permisos por medio de "," para enviarle a la consulta todos los valores
         const valoresParaInsertarPermisos = permisosRolesAgregar.join(', ');
+        console.log(valoresParaInsertarPermisos);
 
         try {
-
             const query = `INSERT INTO menu_rol (usuario_rol_id, menu_id, permiso_id) VALUES ${valoresParaInsertarPermisos}`;
             await this.conexion.query(query);
 
@@ -200,37 +217,43 @@ export class RolMenuService {
         }
     }
 
+    async registrarRolPermisos(permisos: RegistrarRolPermios) {
+        try {
+            const { nombreRol, menus } = permisos;
 
+            let respuestaRegistro: any = await this.serivioRol.registrarRol(nombreRol);
+            let idRol: number = parseInt(respuestaRegistro.insertId);
+            let permisosRol = this.agruparPermisosRol(menus);
 
-    compararPares(a: number[], b: number[]): any {
-        const rolPermio: number[] = [];
+            await this.registrarPermisosRol(idRol, permisosRol)
 
-        for (let i = 0; i < a.length; i += 2) {
-            const parA = [a[i], a[i + 1]];
-
-            // Comprobar si el par actual de a no está en b
-            if (!this.existeParEnArray(parA, b)) {
-                rolPermio.push(parA[0], parA[1]);
-            }
+        } catch (error) {
+            console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+            throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+        } finally {
+            await this.dbConexionServicio.closeConnection();
         }
-
-        return rolPermio;
     }
 
-    // Comprueba si un par [a, b] está en el array
-    existeParEnArray(par: number[], array: number[]): boolean {
-        for (let i = 0; i < array.length; i += 2) {
 
-            const parEnArray = [array[i], array[i + 1]];
+    // utiliza filter y flat para obtener los pares que no existen en el array base.
+    compararPares(a: number[], b: number[]): number[] {
+        const paresA = this.agruparEnPares(a);
+        const paresB = this.agruparEnPares(b);
 
-            if (par[0] === parEnArray[0] && par[1] === parEnArray[1]) {
-                return true;
-            }
-        }
-
-        return false;
+        return paresA.filter(par => !this.existeParEnArray(par, paresB)).flat();
     }
 
+    //Esta funcion esta encargada de convierte un array en un array bidimensional agrupando elementos de dos en dos.
+    agruparEnPares(array: number[]): number[][] {
+        return Array.from({ length: array.length / 2 }, (_, i) => array.slice(i * 2, i * 2 + 2));
+    }
+
+
+    //Utiliza el método some para verificar si un par existe en un array bidimensional.
+    existeParEnArray(par: number[], array: number[][]): boolean {
+        return array.some(parEnArray => par[0] === parEnArray[0] && par[1] === parEnArray[1]);
+    }
 
 
 }
