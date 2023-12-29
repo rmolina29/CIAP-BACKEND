@@ -152,8 +152,6 @@ export class CrudUsuarioController {
     async permisosRol(@Query('id') idRol: number, @Res() res: Response) {
         try {
             // .
-            console.log(idRol);
-
             const datosRolPermisos = await this.serviciRoloMenu.obtenerPermisosDelRol(idRol);
             res.status(HttpStatus.OK).json(datosRolPermisos);
 

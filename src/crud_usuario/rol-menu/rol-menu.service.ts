@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { Connection } from 'mariadb';
-import { RolMenu, responseRolRegistro } from '../crud_rol/dto/rol.dto';
+import { RolMenu } from '../crud_rol/dto/rol.dto';
 import { Menu, PermisosRol, RegistrarRolPermios } from './dto/rol-menu.dto';
 import { CrudUsuarioService } from '../crud_usuario.service';
 import { CrudRolService } from '../crud_rol/crud_rol.service';
@@ -20,17 +20,11 @@ export class RolMenuService {
 
                                             `;
     private readonly SQL_SELECT_OBTENER_PERMISOS_DEL_ROL = `SELECT men.id as id_menu, men.descripcion as menu,  men.id_menu_padre,
-	IFNULL( 
-	(SELECT CONCAT('[', GROUP_CONCAT(mp.id), ']')  
-                FROM menu_rol mr
-                JOIN menu m ON m.id = mr.menu_id 
-                JOIN menu_permisos mp ON mp.id = mr.permiso_id 
-                WHERE m.id = men.id
-                GROUP by m.id
-	) ,'N/A') as permisos,	
     ifnull(t.id_rol,'NA') as id_rol,
-    ifnull(t.id_permisos,'NA') as id_permiso,
-    ifnull(t.permiso,'NA') as permiso,
+    GROUP_CONCAT(CASE WHEN t.id_permisos = 1 THEN t.id_permisos END) AS permiso_1,
+    GROUP_CONCAT(CASE WHEN t.id_permisos = 2 THEN t.id_permisos END) AS permiso_2,
+    GROUP_CONCAT(CASE WHEN t.id_permisos = 3 THEN t.id_permisos END) AS permiso_3,
+    GROUP_CONCAT(CASE WHEN t.id_permisos = 4 THEN t.id_permisos END) AS permiso_4,
     ifnull(t.abreviatura,'NA') as abreviatura
     FROM menu men
     LEFT JOIN (SELECT mr.usuario_rol_id  as id_rol, m.id as id_menu,m.id_menu_padre , m.descripcion as menu, mp.id as id_permisos, mp.permiso as permiso, mp.abreviatura as abreviatura
@@ -38,8 +32,9 @@ export class RolMenuService {
                 JOIN menu m ON m.id = mr.menu_id 
                 JOIN menu_permisos mp ON mp.id = mr.permiso_id 
                 WHERE mr.usuario_rol_id = ? AND mr.estado = 1
-                ORDER BY m.id ASC) t on t.id_menu = men.id      
-               	GROUP by men.id; `;
+                ORDER BY m.id ASC) t on t.id_menu = men.id
+   GROUP BY id_menu, menu, id_menu_padre
+   ORDER BY id_menu;`;
 
 
 
@@ -90,8 +85,6 @@ export class RolMenuService {
             this.conexion = this.dbConexionServicio.getConnection();
 
             const permisosDelRol = await this.conexion.query(this.SQL_SELECT_OBTENER_PERMISOS_DEL_ROL, [idRol]);
-            console.log(permisosDelRol, idRol);
-
             return permisosDelRol;
 
         } catch (error) {
@@ -134,11 +127,6 @@ export class RolMenuService {
             const permisosRolUsuario = this.agruparPermisosRol(menus);
             // obtengo en una consulta todos los permisos que tiene actualmente el rol activos.
             const obtenerRolesPermisosAsignados: any[] = await this.obtenerPermisosRoles(idRol);
-
-            // if (obtenerRolesPermisosAsignados.length === 0) {
-            //     console.log('no existen permisos en el rol');
-            //     return
-            // }
 
             // permisos que ya estan registrados y los obtengo desde la consulta
             const permisosActualesDelRol = obtenerRolesPermisosAsignados.map(item => [item.menu_id, item.permiso_id]).flat();;
