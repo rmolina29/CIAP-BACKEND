@@ -11,7 +11,7 @@ import { ValidacionService } from './validaciones_crudUsuario/validaciones_usuar
 import { GuardsGuard } from './guards/guards.guard';
 import { RolMenuService } from './rol-menu/rol-menu.service';
 import { PermisosRol, Permisos, MenuRol, RegistrarRolPermios } from './rol-menu/dto/rol-menu.dto';
-import { GuardsRolGuard } from './guards/guard_rol_permisos.guard';
+import { GuardsMenulGuard, GuardsRolGuard } from './guards/guard_rol_permisos.guard';
 
 
 @Controller('/usuario')
@@ -39,7 +39,7 @@ export class CrudUsuarioController {
     @Post('/rol/registro')
     @ApiBody({ type: RegistrarRolPermios, description: 'Se hace el registro de los roles y se le atorgan permisos.' })
     @ApiOkResponse({ status: 201, description: 'Respuesta exitosa' })
-    @UseGuards(GuardsRolGuard)
+    @UseGuards(GuardsRolGuard, GuardsMenulGuard)
     async rolRegistro(@Body() body: RegistrarRolPermios, @Res() res: Response) {
         try {
             await this.serviciRoloMenu.registrarRolPermisos(body)
@@ -153,7 +153,7 @@ export class CrudUsuarioController {
         try {
             // .
             console.log(idRol);
-            
+
             const datosRolPermisos = await this.serviciRoloMenu.obtenerPermisosDelRol(idRol);
             res.status(HttpStatus.OK).json(datosRolPermisos);
 

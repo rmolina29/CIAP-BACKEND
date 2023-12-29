@@ -7,6 +7,13 @@ import { CrudUsuarioModule } from './crud_usuario/crud_usuario.module';
 import { ParametrosModule } from './parametros/parametros.module';
 
 @Module({
-  imports: [RestablecimientoContrasenaModule, DatabaseModule, LoginModule, EnvioCorreosModule, CrudUsuarioModule, ParametrosModule],
+  imports: [
+    RestablecimientoContrasenaModule,
+    DatabaseModule,
+    LoginModule,
+    EnvioCorreosModule,
+    CrudUsuarioModule,
+    ParametrosModule
+  ],
 })
-export class AppModule {}
+export class AppModule { }

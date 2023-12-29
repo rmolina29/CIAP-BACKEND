@@ -3,6 +3,7 @@ import { CrudUsuarioService } from '../crud_usuario.service';
 import { CrudRolService } from '../crud_rol/crud_rol.service';
 import { DatosUsuario } from '../dtoCrudUsuario/crudUser.dto';
 import { RolEstado } from '../crud_rol/dto/rol.dto';
+import { Menu } from '../rol-menu/dto/rol-menu.dto';
 
 @Injectable()
 export class ValidacionService {
@@ -21,6 +22,13 @@ export class ValidacionService {
         const existeIdRol = await this.serivioRol.verificacionRolExiste(nombreRol);
         if (existeIdRol) {
             return { success: false, status: 404, message: `El rol '${nombreRol}' ya se encuentra registrado.` };
+        }
+        return { success: true };
+    }
+    async validardMenuExiste(menus: Menu): Promise<{ success: boolean, status?: number, message?: string }> {
+        const existeMenu = await this.serivioRol.verificacionMenuPermisoExiste(menus);
+        if (existeMenu) {
+            return { success: false, status: 404, message: `Se ha encontrado un menu que no se le pueden otrogar permisos.` };
         }
         return { success: true };
     }

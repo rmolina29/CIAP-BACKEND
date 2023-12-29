@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Connection } from 'mariadb';
 import { DatabaseService } from 'src/database/database.service';
 import { DataRol, RolEstado, RolNombre } from './dto/rol.dto';
+import { Menu } from '../rol-menu/dto/rol-menu.dto';
 
 @Injectable()
 export class CrudRolService {
@@ -13,6 +14,7 @@ export class CrudRolService {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();
+            await this.dbConexionServicio.beginTransaction();
 
             let rolRegistro = rol ?? '';
 
@@ -23,9 +25,10 @@ export class CrudRolService {
             return await this.conexion.query(sql);
 
         } catch (error) {
+            await this.dbConexionServicio.rollback();
             console.error('problema en la base de datos');
             throw new Error(`error de servidor: ${error}`);
-        } 
+        }
 
     }
 
@@ -46,6 +49,35 @@ export class CrudRolService {
             let existeRol = await this.conexion.query(sql);
 
             return existeRol.length > 0;
+
+        } catch (error) {
+            console.error('problema en la base de datos');
+            throw new Error(`error de servidor: ${error}`);
+        } finally {
+            await this.dbConexionServicio.closeConnection();
+        }
+
+    }
+
+    async verificacionMenuPermisoExiste(menus: Menu): Promise<boolean> {
+        try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+
+            const menuPermisos: number[] = menus.map((menu: { id_menu: number; }) => menu.id_menu);
+
+            const menuJoinid = menuPermisos.join(',');
+
+            //consulta para seleccionar el rol que se va a registrar y verificar si ya existe
+            let sql = `SELECT COUNT(m.id) as permiso
+                        FROM menu m
+                        WHERE m.id IN (${menuJoinid}) AND m.id_menu_padre != 0
+                        HAVING COUNT(m.id) = ${menuPermisos.length};
+            `;
+
+            let existeMenu = await this.conexion.query(sql);
+
+            return existeMenu.length === 0;
 
         } catch (error) {
             console.error('problema en la base de datos');
@@ -138,7 +170,7 @@ export class CrudRolService {
 
     }
 
-    async existeusuarioLigadoRol(idRol: number):Promise<boolean> {
+    async existeusuarioLigadoRol(idRol: number): Promise<boolean> {
         try {
             this.conexion = await this.dbConexionServicio.connectToDatabase()
             this.conexion = this.dbConexionServicio.getConnection();

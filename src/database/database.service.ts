@@ -14,8 +14,8 @@ export class DatabaseService {
                 password: process.env.DB_PASSWORD,
                 database: process.env.DB_DATABASE,
                 port: parseInt(process.env.DB_PORT),
-                connectTimeout:10000,
-                
+                connectTimeout: 10000,
+
             });
         }
     }
@@ -25,11 +25,22 @@ export class DatabaseService {
         return this.connection;
     }
 
-    async closeConnection(){
-        if(this.connection){
+    async closeConnection() {
+        if (this.connection) {
             await this.connection.end()
             this.connection = null;
         }
+    }
+
+    async beginTransaction(): Promise<void> {
+        await this.connection.beginTransaction();
+    }
+    async rollback(): Promise<void> {
+        await this.connection.rollback();
+    }
+
+    async commit(): Promise<void> {
+        await this.connection.commit();
     }
 
 

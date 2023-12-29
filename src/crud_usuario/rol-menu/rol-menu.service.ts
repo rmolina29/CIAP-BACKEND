@@ -21,7 +21,7 @@ export class RolMenuService {
                                             `;
     private readonly SQL_SELECT_OBTENER_PERMISOS_DEL_ROL = `SELECT men.id as id_menu, men.descripcion as menu,  men.id_menu_padre,
 	IFNULL( 
-	(SELECT GROUP_CONCAT(mp.id) 
+	(SELECT CONCAT('[', GROUP_CONCAT(mp.id), ']')  
                 FROM menu_rol mr
                 JOIN menu m ON m.id = mr.menu_id 
                 JOIN menu_permisos mp ON mp.id = mr.permiso_id 
@@ -40,6 +40,8 @@ export class RolMenuService {
                 WHERE mr.usuario_rol_id = ? AND mr.estado = 1
                 ORDER BY m.id ASC) t on t.id_menu = men.id      
                	GROUP by men.id; `;
+
+
 
     private readonly SQL_SELECT_OBTENER_PERMISOS_POR_ROL = 'SELECT menu_id,permiso_id  FROM menu_rol WHERE estado = 1 AND usuario_rol_id = ? ORDER BY menu_id ASC;';
 
@@ -198,6 +200,7 @@ export class RolMenuService {
 
         this.conexion = await this.dbConexionServicio.connectToDatabase()
         this.conexion = this.dbConexionServicio.getConnection();
+
         // me realiza el filtro por pares y me los separa de dos datos ejemplo -> [1,2,3,4] me devolvera (1,2) (3,4)
         const permisosRolesAgregar = permisosRegistro
             .map((valor, indice, array) => (indice % 2 === 0 ? `(${idRol},${valor},${array[indice + 1]})` : null))
@@ -205,7 +208,6 @@ export class RolMenuService {
 
         // aqui realizo la union de los permisos por medio de "," para enviarle a la consulta todos los valores
         const valoresParaInsertarPermisos = permisosRolesAgregar.join(', ');
-        console.log(valoresParaInsertarPermisos);
 
         try {
             const query = `INSERT INTO menu_rol (usuario_rol_id, menu_id, permiso_id) VALUES ${valoresParaInsertarPermisos}`;
@@ -219,15 +221,21 @@ export class RolMenuService {
 
     async registrarRolPermisos(permisos: RegistrarRolPermios) {
         try {
+            this.conexion = await this.dbConexionServicio.connectToDatabase()
+            this.conexion = this.dbConexionServicio.getConnection();
+            await this.dbConexionServicio.beginTransaction();
+
             const { nombreRol, menus } = permisos;
 
             let respuestaRegistro: any = await this.serivioRol.registrarRol(nombreRol);
             let idRol: number = parseInt(respuestaRegistro.insertId);
             let permisosRol = this.agruparPermisosRol(menus);
 
-            await this.registrarPermisosRol(idRol, permisosRol)
+            await this.registrarPermisosRol(idRol, permisosRol);
+            await this.conexion.commit();
 
         } catch (error) {
+            await this.dbConexionServicio.rollback();
             console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
             throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
         } finally {

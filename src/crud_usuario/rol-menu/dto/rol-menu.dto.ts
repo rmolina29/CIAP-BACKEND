@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional } from "class-validator";
-import { validacionCamposVaciosString, validacionMinimoMaximo, validacionTipadoNumVacios, validacionTipoStringVacios } from "src/dtoValidation/validacionesGlobalesDto";
+import { Type } from "class-transformer";
+import { IsArray, IsNotEmpty, IsString, ValidateNested, isNotEmpty, isString } from "class-validator";
+import { validacionMinimoMaximo, validacionTipadoNumVacios, validacionTipoStringVacios } from "src/dtoValidation/validacionesGlobalesDto";
 
 
 export class Menu {
@@ -12,7 +13,7 @@ export class Menu {
 
     @ApiProperty({ example: '[1,2,3]', description: 'se envia los permisos asignados al rol.', required: true })
     @IsNotEmpty({ message: 'no debe ir vacio el id de permisos del menu.' })
-    @validacionMinimoMaximo('se ha pasado el limite de permisos')
+    @validacionMinimoMaximo()
     id_permisos: number[];
 }
 
@@ -33,14 +34,17 @@ export class PermisosRol {
          }
     ]`, description: 'la id del rol que cambiara su estado.', required: true
     })
-    @IsNotEmpty({ message: 'no debe ir vacio el menu.' })
+
+    @IsArray({ message: 'no debe ir vacio el menu.' })
+    // @ValidateNested({ each: true })
+    // @Type(() => Menu)
     menus: Menu;
 }
 
 export class RegistrarRolPermios {
 
     @ApiProperty({ example: 'PMO', description: 'el nombre del rol a registrar.', required: true })
-    @validacionTipoStringVacios('el id del rol debe ser un string.','el id del rol debe ser un string.')
+    @IsNotEmpty()
     nombreRol: string;
 
     @ApiProperty({
@@ -55,7 +59,7 @@ export class RegistrarRolPermios {
          }
     ]`, description: 'la id del rol que cambiara su estado.', required: true
     })
-    @IsNotEmpty({ message: 'no debe ir vacio el menu.' })
+    @IsArray({ message: 'no debe ir vacio el menu.' })
     menus: Menu;
 }
 
