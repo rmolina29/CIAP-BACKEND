@@ -6,7 +6,34 @@ import { MensajeAlerta, RespuestaPeticion } from 'src/mensajes_usuario/mensajes-
 
 // este guardian me valida el registro y actualizacion de usuarios
 @Injectable()
-export class GuardsGuard implements CanActivate {
+export class GuardActualizarUsuario implements CanActivate {
+  constructor(private readonly validacionService: ValidacionService) { }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const usuario = request.body;
+
+    const validacionUsuario = await this.validacionService.excepcionesRegistroUsuarios(usuario);
+
+    const existeProyecto = await this.validacionService.validarProyectoExisteUsuario(usuario);
+    
+    if (!validacionUsuario.success || !existeProyecto.success) {
+      // Devuelve una respuesta personalizada con código de estado 200
+      const response = context.switchToHttp().getResponse();
+      response.status(HttpStatus.OK).json({
+        success: false,
+        status: RespuestaPeticion.OK,
+        message: `${MensajeAlerta.UPS}, ${validacionUsuario.message || existeProyecto.message}`,
+      });
+
+      return false; // Devuelve falso para indicar que la validación falló
+    }
+
+    return true;
+  }
+}
+@Injectable()
+export class GuardRegistrarUsuario implements CanActivate {
   constructor(private readonly validacionService: ValidacionService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -38,17 +65,17 @@ export class GuardRolActualizar implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const usuario = request.body;
+    const rol = request.body;
 
-    const validacionUsuario = await this.validacionService.excepcionesRegistroUsuarios(usuario);
+    const validacionrol = await this.validacionService.rolActualizarEstado(rol);
 
-    if (!validacionUsuario.success) {
+    if (!validacionrol.success) {
       // Devuelve una respuesta personalizada con código de estado 200
       const response = context.switchToHttp().getResponse();
       response.status(HttpStatus.OK).json({
         success: false,
         status: RespuestaPeticion.OK,
-        message: `${MensajeAlerta.UPS}, ${validacionUsuario.message}`,
+        message: `${MensajeAlerta.UPS}, ${validacionrol.message}`,
       });
 
       return false; // Devuelve falso para indicar que la validación falló

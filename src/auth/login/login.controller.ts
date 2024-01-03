@@ -4,7 +4,7 @@ import { LoginService } from './login.service';
 import { DataLogin, RespuestaDataUsuario, datosObjetoCuerpoHtml } from './dto_autenticacion/usuario_autenticacion.dto';
 import * as moment from 'moment-timezone';
 import { MensajeAlerta, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
-import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
+import { EnvioCorreosService } from 'src/envio_correos/envio_correos.service';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Autenticacion')

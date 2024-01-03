@@ -1,26 +1,114 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCrudGerenciaDto } from './dto/create-crud-gerencia.dto';
-import { UpdateCrudGerenciaDto } from './dto/update-crud-gerencia.dto';
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { Gerencia, Estado } from './dto/create-crud-gerencia.dto';
+import { DatabaseService } from 'src/database/database.service';
+import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
+import { Connection } from 'mariadb';
 
 @Injectable()
 export class CrudGerenciaService {
-  create(createCrudGerenciaDto: CreateCrudGerenciaDto) {
-    return 'This action adds a new crudGerencia';
+
+  private readonly SQL_OBTENER_GERENCIA = `
+  SELECT pug.id as idGerencia, pug.nombre as gerencia, ua.nombre_usuario as responsable, DATE_FORMAT(pug.fechasistema, '%d/%m/%Y %H:%i') as fecha_creacion FROM proyecto_unidad_gerencia pug 
+    JOIN usuario_auth ua ON pug.responsable_id = ua.id 
+    WHERE ua.estado = 1 AND pug.estado = 1;  
+  `;
+
+  private readonly SQL_OBTENER_NOMBRE_GERENCIA = "SELECT * FROM proyecto_unidad_gerencia WHERE nombre = ? AND id != ?";
+
+  private readonly SQL_OBTENER_LISTADO_RESPONSABLES = 'SELECT id,nombre_usuario as nombreUsuario FROM usuario_auth ua WHERE estado = 1;';
+
+  private readonly SQL_REGISTRAR_UNIDAD_DE_GERENCIA = "INSERT INTO proyecto_unidad_gerencia (unidad_gerencia_id_erp,nombre,responsable_id) VALUES (?,?,?)";
+
+  private readonly SQL_ACTUALIZAR_UNIDAD_DE_GERENCIA = "UPDATE proyecto_unidad_gerencia SET unidad_gerencia_id_erp = ?, nombre = ?, responsable_id = ? WHERE id = ?;";
+
+  private readonly SQL_ACTUALIZAR_ESTADO_DE_GERENCIA = "UPDATE proyecto_unidad_gerencia SET estado = ? WHERE id = ?;";
+
+  constructor(private readonly dbConexionServicio: DatabaseService) { }
+
+  private conexion: Connection;
+
+  async registrar(gerenciaDto: Gerencia) {
+    try {
+      const { idGerenciaErp, nombre, idResponsable } = gerenciaDto
+
+      this.conexion = await this.dbConexionServicio.connectToDatabase();
+      this.conexion = this.dbConexionServicio.getConnection();
+
+      await this.conexion.query(this.SQL_REGISTRAR_UNIDAD_DE_GERENCIA, [idGerenciaErp, nombre, idResponsable]);
+
+    } catch (error) {
+      console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+      throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+    } finally {
+      await this.dbConexionServicio.closeConnection();
+
+    }
   }
 
-  findAll() {
-    return `This action returns all crudGerencia`;
+  async obtenerGerencias() {
+    try {
+      this.conexion = await this.dbConexionServicio.connectToDatabase();
+      this.conexion = this.dbConexionServicio.getConnection();
+
+      const gerencias = await this.conexion.query(this.SQL_OBTENER_GERENCIA);
+      return gerencias
+
+    } catch (error) {
+      console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+      throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+    } finally {
+      await this.dbConexionServicio.closeConnection();
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} crudGerencia`;
+  async obtenerResponsables() {
+    try {
+      this.conexion = await this.dbConexionServicio.connectToDatabase();
+      this.conexion = this.dbConexionServicio.getConnection();
+
+      const responsables = await this.conexion.query(this.SQL_OBTENER_LISTADO_RESPONSABLES);
+
+      return responsables
+
+    } catch (error) {
+      console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+      throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+    } finally {
+      await this.dbConexionServicio.closeConnection();
+    }
   }
 
-  update(id: number, updateCrudGerenciaDto: UpdateCrudGerenciaDto) {
-    return `This action updates a #${id} crudGerencia`;
+
+  async actualizar(updateCrudGerenciaDto: Gerencia) {
+    try {
+      
+      const { idGerenciaErp, nombre, idResponsable, id } = updateCrudGerenciaDto
+      this.conexion = await this.dbConexionServicio.connectToDatabase();
+      this.conexion = this.dbConexionServicio.getConnection();
+      await this.conexion.query(this.SQL_ACTUALIZAR_UNIDAD_DE_GERENCIA, [idGerenciaErp, nombre, idResponsable, id]);
+
+    } catch (error) {
+      console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+      throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+    } finally {
+      await this.dbConexionServicio.closeConnection();
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} crudGerencia`;
+  async actualizarEstado(estado: Estado) {
+    try {
+      const { idGerencia, estadoGerencia } = estado;
+
+      this.conexion = await this.dbConexionServicio.connectToDatabase();
+      this.conexion = this.dbConexionServicio.getConnection();
+      this.conexion.query(this.SQL_ACTUALIZAR_ESTADO_DE_GERENCIA, [estadoGerencia, idGerencia]);
+
+    } catch (error) {
+      console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+      throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+    } finally {
+      await this.dbConexionServicio.closeConnection();
+
+    }
   }
 }

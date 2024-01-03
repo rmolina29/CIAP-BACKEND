@@ -6,10 +6,16 @@ import { CrudDireccionModule } from './crud-direccion/crud-direccion.module';
 import { CrudCecoModule } from './crud-ceco/crud-ceco.module';
 import { CrudClienteModule } from './crud-cliente/crud-cliente.module';
 import { CrudEstadosModule } from './crud-estados/crud-estados.module';
+import { CrudClienteService } from './crud-cliente/crud-cliente.service';
+import { CrudCecoService } from './crud-ceco/crud-ceco.service';
+import { CrudGerenciaService } from './crud-gerencia/crud-gerencia.service';
+import { CrudEstadosService } from './crud-estados/crud-estados.service';
+import { CrudDireccionService } from './crud-direccion/crud-direccion.service';
+import { DatabaseService } from 'src/database/database.service';
 
 @Module({
   controllers: [ParametrosController],
-  providers: [ParametrosService],
+  providers: [ParametrosService, CrudClienteService, CrudCecoService, CrudGerenciaService, CrudEstadosService, CrudDireccionService, DatabaseService],
   imports: [CrudGerenciaModule, CrudDireccionModule, CrudCecoModule, CrudClienteModule, CrudEstadosModule],
 })
-export class ParametrosModule {}
+export class ParametrosModule { }

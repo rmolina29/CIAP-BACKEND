@@ -33,8 +33,8 @@ export class RolMenuService {
                 JOIN menu_permisos mp ON mp.id = mr.permiso_id 
                 WHERE mr.usuario_rol_id = ? AND mr.estado = 1
                 ORDER BY m.id ASC) t on t.id_menu = men.id
-   GROUP BY id_menu, menu, id_menu_padre
-   ORDER BY id_menu;`;
+                GROUP BY men.id, men.descripcion, men.id_menu_padre
+                ORDER BY id_menu;`;
 
 
 

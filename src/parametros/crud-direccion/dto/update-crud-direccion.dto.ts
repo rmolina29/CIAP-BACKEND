@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateCrudDireccionDto } from './create-crud-direccion.dto';
+import { DireccionDto } from './create-crud-direccion.dto';
 
-export class UpdateCrudDireccionDto extends PartialType(CreateCrudDireccionDto) {}
+export class UpdateCrudDireccionDto extends PartialType(DireccionDto) { }

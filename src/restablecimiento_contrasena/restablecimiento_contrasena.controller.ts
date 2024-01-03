@@ -2,8 +2,8 @@ import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
 import { RestablecimientoContrasenaService } from './restablecimiento_contrasena.service';
 import { ContrasenaUsuario, DatosToken, email, tokenValidacion } from './restablecimiento_contra.dto/verificacion_correo.dto';
 import { Response } from 'express';
-import { EnvioCorreosService } from './envio_correos/envio_correos.service'
-import { Email } from './envio_correos/email.dto/email.dto';
+import { EnvioCorreosService } from 'src/envio_correos/envio_correos.service'; 
+import { Email } from 'src/envio_correos/email.dto/email.dto'; 
 import { ApiBody, ApiTags } from '@nestjs/swagger';
 
 

@@ -14,6 +14,7 @@ export enum TipoEstado {
 export enum Registro {
     EXITOSO = 'Usuario registrado exitosamente.',
     EXITOSO_PERMISO_ROL = 'Permiso actualizado exitosamente.',
+    EXITO_GERENCIA = 'Gerencia registrada existosamente'
 
 }
 

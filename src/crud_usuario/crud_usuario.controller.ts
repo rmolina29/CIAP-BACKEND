@@ -5,10 +5,10 @@ import { Response } from 'express';
 import { DataRol, RolEstado, RolMenu, RolNombre, bodyRolRegistro, responseRolRegistro } from './crud_rol/dto/rol.dto';
 import { CuentasUsuario, DatosUsuario, EstadoUsuario, InformacionProyecto, ProyectoIdUsuario, UsuarioId } from './dtoCrudUsuario/crudUser.dto';
 import { MensajeAlerta, Registro, RespuestaPeticion, TipoEstado } from 'src/mensajes_usuario/mensajes-usuario.enum';
-import { EnvioCorreosService } from 'src/restablecimiento_contrasena/envio_correos/envio_correos.service';
+import { EnvioCorreosService } from 'src/envio_correos/envio_correos.service';
 import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ValidacionService } from './validaciones_crudUsuario/validaciones_usuario_crud.service';
-import { GuardsGuard } from './guards/guards.guard';
+import { GuardActualizarUsuario, GuardRegistrarUsuario, GuardRolActualizar } from './guards/guards.guard';
 import { RolMenuService } from './rol-menu/rol-menu.service';
 import { PermisosRol, Permisos, MenuRol, RegistrarRolPermios } from './rol-menu/dto/rol-menu.dto';
 import { GuardsMenulGuard, GuardsRolGuard } from './guards/guard_rol_permisos.guard';
@@ -55,6 +55,7 @@ export class CrudUsuarioController {
     @ApiTags('Roles')
     @Put('/rol/nombre')
     @ApiBody({ type: RolNombre, description: 'Se actualizara el rol del nombre por medio el id y el nuevo nombre a actualizar.' })
+
     async actualizarRol(@Body() rol: RolNombre, @Res() res: Response) {
         try {
             let nombre = rol.nombreRol;
@@ -84,18 +85,12 @@ export class CrudUsuarioController {
     @ApiTags('Roles')
     @Put('/rol/estado')
     @ApiBody({ type: RolEstado, description: 'Se actualizara el estado rol del rol para activar o desactivar.' })
+    @UseGuards(GuardRolActualizar)
     async actualizarEstado(@Body() rol: RolEstado, @Res() res: Response) {
         try {
-            // validacion de que el usuario le envie un id rol que exista y que valide si hay un usuario ligado con esta id.
-            const validacionRol = await this.validacionService.rolActualizar(rol);
-
-            if (!validacionRol.success) {
-                return res.status(200).json(validacionRol);
-            }
-
             await this.serivioRol.actualizarEstadoRol(rol);
-
             const response = rol.estado === TipoEstado.ACTIVO ? 'rol activado' : 'rol desactivado';
+
             res.status(HttpStatus.OK).json({
                 status: 'ok',
                 mensaje: 'Rol actualizado',
@@ -180,7 +175,7 @@ export class CrudUsuarioController {
     // Se registrara el usuario, rol asignado al usuario y proyectos
     @ApiTags('Usuarios')
     @Post('/registrar')
-    @UseGuards(GuardsGuard)
+    @UseGuards(GuardRegistrarUsuario)
     @ApiBody({ type: DatosUsuario, description: 'Se hara el registro de ususarios.' })
     async crearUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {
@@ -197,7 +192,7 @@ export class CrudUsuarioController {
 
     @ApiTags('Usuarios')
     @Put('/actualizar')
-    @UseGuards(GuardsGuard)
+    @UseGuards(GuardActualizarUsuario)
     @ApiBody({ type: DatosUsuario, description: 'Se hara la actualizacion de ususarios.' })
     async actualizarInformacionUsuario(@Body() usuario: DatosUsuario, @Res() res: Response) {
         try {

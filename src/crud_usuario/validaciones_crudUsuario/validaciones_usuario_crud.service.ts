@@ -60,7 +60,7 @@ export class ValidacionService {
 
     async validarProyectoExisteUsuario(idUsuario: number): Promise<{ success: boolean, status?: number, message?: string }> {
         const existeProyecto = await this.sevicioUsuario.obtenerProyectosUsuario(idUsuario);
-
+        
         if (existeProyecto.length === 0) {
             return {
                 success: false,
@@ -71,6 +71,7 @@ export class ValidacionService {
         return { success: true };
     }
 
+ 
     async excepcionesRegistroUsuarios(usuario: DatosUsuario): Promise<{ success: boolean, status?: number, message?: string }> {
 
         let idUsuario = usuario.idUsuario ?? 0;
@@ -79,12 +80,7 @@ export class ValidacionService {
         const validacionIdentificacion = await this.validarIdentificacion(usuario.identificacion, idUsuario);
         const validacionEmail = await this.validarEmail(usuario.correo, idUsuario);
         const validacionProyecto = await this.validarProyecto(usuario.idProyecto);
-        const validarProyectosUsuario = await this.validarProyectoExisteUsuario(usuario.idUsuario);
-        // se realiza el filtro de lo que devuelve la consulta por el id de proyectos para contenerla en un array.
-
-        if (!validarProyectosUsuario.success) {
-            return validarProyectosUsuario;
-        }
+   
 
         if (!validacionIdRol.success) {
             return validacionIdRol;
@@ -106,7 +102,7 @@ export class ValidacionService {
     }
 
 
-    async rolActualizar(rol: RolEstado): Promise<{ success: boolean, status: number, message?: string, response: string }> {
+    async rolActualizarEstado(rol: RolEstado): Promise<{ success: boolean, status: number, message?: string, response: string }> {
 
         const ExisteIdRol = await this.serivioRol.ExisteIdRol(rol.idRol);
         const ValidacionRoLigado = await this.serivioRol.existeusuarioLigadoRol(rol.idRol);
