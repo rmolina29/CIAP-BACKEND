@@ -12,9 +12,14 @@ import { CrudGerenciaService } from './crud-gerencia/crud-gerencia.service';
 import { CrudEstadosService } from './crud-estados/crud-estados.service';
 import { CrudDireccionService } from './crud-direccion/crud-direccion.service';
 import { DatabaseService } from 'src/database/database.service';
+import { GerenciaContoller } from './crud-gerencia/gerencia.controller';
+import { DireccionController } from './crud-direccion/direccion.contoller';
+import { CecoController } from './crud-ceco/ceco.controller';
+import { ClienteController } from './crud-cliente/cliente.controller';
+import { EstadosController } from './crud-estados/estados.controller';
 
 @Module({
-  controllers: [ParametrosController],
+  controllers: [ParametrosController, GerenciaContoller, DireccionController, CecoController, ClienteController, EstadosController],
   providers: [ParametrosService, CrudClienteService, CrudCecoService, CrudGerenciaService, CrudEstadosService, CrudDireccionService, DatabaseService],
   imports: [CrudGerenciaModule, CrudDireccionModule, CrudCecoModule, CrudClienteModule, CrudEstadosModule],
 })
