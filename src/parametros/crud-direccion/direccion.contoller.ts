@@ -6,7 +6,7 @@ import { DireccionDto, EstadoDireccion } from "./dto/create-crud-direccion.dto";
 import { GuardParametros } from "../guards/validacionParametros.guard";
 import { Response } from "express";
 
-@Controller('direccion')
+@Controller('unidad-organizativa')
 export class DireccionController {
     constructor(
         private readonly direccionServicio: CrudDireccionService) { }
