@@ -23,6 +23,11 @@ export class GerenciaContoller {
     gerencia() {
         return this.gerenciaServicio.obtenerGerencias();
     }
+    @ApiTags('Gerencia')
+    @Get('/activas')
+    gerenciaActivos() {
+        return this.gerenciaServicio.obtenerGerenciasActivas();
+    }
 
     @ApiTags('Gerencia')
     @Post('/registrar')

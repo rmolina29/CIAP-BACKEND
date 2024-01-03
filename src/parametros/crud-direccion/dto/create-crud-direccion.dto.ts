@@ -17,9 +17,9 @@ export class DireccionDto {
     @validacionTipoStringVacios('el nombre de la direccion debe ser string.', 'el nombre de la direccion no puede ir vacia.')
     nombre: string;
 
-    // @ApiProperty({ example: '1', description: 'Hace referencia al al id de la gerencia.', required: true })
-    // @validacionTipadoNumVacios('el id de la gerencia no debe ir vacio.', 'el id de la gerencia debe ser un numero entero.')
-    // idGerencia: number;
+    @ApiProperty({ example: '1', description: 'Hace referencia al al id de la gerencia.', required: true })
+    @validacionTipadoNumVacios('el id de la gerencia no debe ir vacio.', 'el id de la gerencia debe ser un numero entero.')
+    idGerencia: number;
 }
 
 export class EstadoDireccion {

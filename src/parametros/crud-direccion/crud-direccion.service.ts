@@ -7,7 +7,10 @@ import { DatabaseService } from 'src/database/database.service';
 @Injectable()
 export class CrudDireccionService {
 
-  private readonly SQL_OBTENER_DIRECCIONES = `SELECT puo.id as idDireccion,puo.nombre as direccion,DATE_FORMAT(puo.fechasistema , '%d/%m/%Y %H:%i:%s') as fecha_crearcion FROM proyecto_unidad_organizativa puo WHERE puo.estado = 1; 
+  private readonly SQL_OBTENER_DIRECCIONES = `
+  SELECT puo.id as idDireccion,puo.nombre as direccion,pug.nombre as gerencia,DATE_FORMAT(puo.fechasistema , '%d/%m/%Y %H:%i:%s') as fecha_crearcion, pug.estado 
+  FROM proyecto_unidad_organizativa puo 
+  JOIN proyecto_unidad_gerencia pug ON pug.id = puo.gerencia_id
   `;
 
   private readonly SQL_REGISTRAR_UNIDAD_ORGANIZATIVA = "INSERT INTO proyecto_unidad_organizativa (unidad_organizativa_id_erp,nombre) VALUES (?,?);";

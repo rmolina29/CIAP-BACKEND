@@ -8,12 +8,15 @@ import { Connection } from 'mariadb';
 export class CrudGerenciaService {
 
   private readonly SQL_OBTENER_GERENCIA = `
-  SELECT pug.id as idGerencia, pug.nombre as gerencia, ua.nombre_usuario as responsable, DATE_FORMAT(pug.fechasistema, '%d/%m/%Y %H:%i') as fecha_creacion FROM proyecto_unidad_gerencia pug 
-    JOIN usuario_auth ua ON pug.responsable_id = ua.id 
-    WHERE ua.estado = 1 AND pug.estado = 1;  
+  SELECT pug.id as idGerencia, pug.nombre as gerencia, ua.nombre_usuario as responsable, DATE_FORMAT(pug.fechasistema, '%d/%m/%Y %H:%i') as fecha_creacion, pug.estado
+  FROM proyecto_unidad_gerencia pug 
+   JOIN usuario_auth ua ON pug.responsable_id = ua.id;
   `;
 
-  private readonly SQL_OBTENER_NOMBRE_GERENCIA = "SELECT * FROM proyecto_unidad_gerencia WHERE nombre = ? AND id != ?";
+  private readonly SQL_OBTENER_GERENCIA_ACTIVAS = `
+      SELECT pug.id as idGerencia, pug.nombre as Gerencia 
+      FROM proyecto_unidad_gerencia pug WHERE pug.estado = 1;  
+  `;
 
   private readonly SQL_OBTENER_LISTADO_RESPONSABLES = 'SELECT id,nombre_usuario as nombreUsuario FROM usuario_auth ua WHERE estado = 1;';
 
@@ -60,6 +63,21 @@ export class CrudGerenciaService {
       await this.dbConexionServicio.closeConnection();
     }
   }
+  async obtenerGerenciasActivas() {
+    try {
+      this.conexion = await this.dbConexionServicio.connectToDatabase();
+      this.conexion = this.dbConexionServicio.getConnection();
+
+      const gerenciasActivas = await this.conexion.query(this.SQL_OBTENER_GERENCIA_ACTIVAS);
+      return gerenciasActivas
+
+    } catch (error) {
+      console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
+      throw new Error(`${MensajeAlerta.ERROR}, ${error.message}`);
+    } finally {
+      await this.dbConexionServicio.closeConnection();
+    }
+  }
 
   async obtenerResponsables() {
     try {
@@ -81,7 +99,7 @@ export class CrudGerenciaService {
 
   async actualizar(updateCrudGerenciaDto: Gerencia) {
     try {
-      
+
       const { idGerenciaErp, nombre, idResponsable, id } = updateCrudGerenciaDto
       this.conexion = await this.dbConexionServicio.connectToDatabase();
       this.conexion = this.dbConexionServicio.getConnection();

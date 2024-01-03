@@ -4,8 +4,7 @@ import { ArrayMaxSize, IsArray, IsNotEmpty, IsOptional, IsString } from 'class-v
 import {
     IsInt,
     Min,
-    Max,
-    MaxLength
+    Max
 } from '@nestjs/class-validator';
 
 export function validacionTipadoNumVacios(mensajevalidacionEntero: string, mensajeValidacionVacio: string) {

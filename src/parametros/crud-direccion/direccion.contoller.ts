@@ -6,18 +6,18 @@ import { DireccionDto, EstadoDireccion } from "./dto/create-crud-direccion.dto";
 import { GuardParametros } from "../guards/validacionParametros.guard";
 import { Response } from "express";
 
+@ApiTags('Direccion')
 @Controller('unidad-organizativa')
 export class DireccionController {
     constructor(
         private readonly direccionServicio: CrudDireccionService) { }
 
-    @ApiTags('Direccion')
+
     @Get('/')
     direccion() {
         return this.direccionServicio.obtenerDirecciones()
     }
 
-    @ApiTags('Direccion')
     @Post('/registrar')
     @ApiBody({ type: DireccionDto, description: 'Se hace el registro de la unidad de gerencia.' })
     @ApiOkResponse({ status: 201, description: Registro.EXITO_GERENCIA })
@@ -28,7 +28,6 @@ export class DireccionController {
     }
 
 
-    @ApiTags('Direccion')
     @Put('/actualizar')
     @ApiBody({ type: DireccionDto, description: 'Se hace la actualizacion de la unidad de Direccion.' })
     @ApiOkResponse({ status: 200, description: Registro.EXITO_GERENCIA })
@@ -44,7 +43,6 @@ export class DireccionController {
     }
 
 
-    @ApiTags('Direccion')
     @Put('/actualizar-estado')
     @ApiBody({ type: EstadoDireccion, description: 'Se hace la actualizacion del estado de la gerencia a activo o inactivo.' })
     @ApiOkResponse({ status: 200, description: 'Estado de la gerencia actualizada.' })
