@@ -3,29 +3,31 @@ import { IsDateString } from "class-validator";
 export class Proyectos {
 
 
-    id:number;
+    id: number;
 
-    numeroContrato:string;
+    numeroContrato: string;
 
-    objeto:string;
+    objeto: string;
 
-    estado:number;
+    estado: number;
 
-    cliente:number;
+    cliente: number;
 
-    gerencia:number;
+    gerencia: number;
 
-    gerente:number;
+    gerente: number;
 
-    @IsDateString()
-    valorInicial:number;
 
-    valorFinal:number;
+    valorInicial: number;
 
-    fechaInicio:Date;
+    valorFinal: number;
 
-    fechaFinal:Date;
+    @IsDateString({ strict: true, strictSeparator: true }, { message: 'la fecha debe tener el formato YYYY-MM-DD' })
+    fechaInicio: string;
 
-    duracion:number;
+    @IsDateString({ strict: true, strictSeparator: true }, { message: 'la fecha debe tener el formato YYYY-MM-DD' })
+    fechaFinal: string;
+
+    duracion: number;
 
 }

@@ -234,7 +234,8 @@ export class CrudUsuarioController {
 
     }
 
-    @ApiTags('Proyectos-usuarios')
+
+    @ApiTags('Usuarios')
     @Get('/proyectos')
     @ApiOkResponse({ description: 'Respuesta exitosa' })
     async obtenerListaProyecto(@Res() res: Response) {
@@ -249,7 +250,8 @@ export class CrudUsuarioController {
 
     }
 
-    @ApiTags('Proyectos-usuarios')
+
+    @ApiTags('Usuarios')
     @Get('/proyectos-de-usuario')
     @ApiQuery({
         name: 'id',

@@ -14,7 +14,7 @@ export class CrudProyectoController {
     return this.proyectosServicio.registrar(createCrudProyectoDto);
   }
 
-  @Get()
+  @Get('/')
   proyectos() {
     return this.proyectosServicio.obtener();
   }
