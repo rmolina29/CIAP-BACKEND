@@ -7,7 +7,7 @@ export class EstadosDto {
     @ApiProperty({ example: '1', description: 'Hace referencia al id que representa los estados de los proyectos.', required: true })
     @validacionTipadoNumVacios('el id debe ser numerico', 'el id no pueden ir vacio.')
     @IsOptional()
-    id: number;
+    id?: number;
 
     @ApiProperty({ example: 'Pausa', description: 'Hace referencia al estado que pueden tener los proyectos.', required: true })
     @validacionTipoStringVacios('la descripcion del estado debe ser una cadena de texto.', 'el nombre de la direccion no puede ir vacia.')

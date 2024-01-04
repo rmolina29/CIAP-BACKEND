@@ -19,17 +19,17 @@ export class DireccionController {
     }
 
     @Post('/registrar')
-    @ApiBody({ type: DireccionDto, description: 'Se hace el registro de la unidad de gerencia.' })
-    @ApiOkResponse({ status: 201, description: Registro.EXITO_GERENCIA })
+    @ApiBody({ type: DireccionDto, description: 'Se hace el registro de la unidad organizativa.' })
+    @ApiOkResponse({ status: 201, description: Registro.EXITO_UNIDAD_ORGANIZATIVA })
     @UseGuards(GuardParametros)
     crearDireccion(@Body() direccion: DireccionDto, @Res() res: Response) {
         this.direccionServicio.registrarDireccion(direccion);
-        res.status(HttpStatus.CREATED).json({ mensaje: Registro.EXITO_GERENCIA, status: RespuestaPeticion.OK });
+        res.status(HttpStatus.CREATED).json({ mensaje: Registro.EXITO_UNIDAD_ORGANIZATIVA, status: RespuestaPeticion.OK });
     }
 
 
     @Put('/actualizar')
-    @ApiBody({ type: DireccionDto, description: 'Se hace la actualizacion de la unidad de Direccion.' })
+    @ApiBody({ type: DireccionDto, description: 'Se hace la actualizacion de la unidad organizativa.' })
     @ApiOkResponse({ status: 200, description: Registro.EXITO_GERENCIA })
     @UseGuards(GuardParametros)
     actualizarDireccion(@Body() direccion: DireccionDto, @Res() res: Response) {
