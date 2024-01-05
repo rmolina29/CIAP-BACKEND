@@ -8,15 +8,15 @@ import { DatabaseService } from 'src/database/database.service';
 export class CrudDireccionService {
 
   private readonly SQL_OBTENER_DIRECCIONES = `
-  SELECT puo.id as idDireccion,puo.nombre as direccion,pug.nombre as gerencia,DATE_FORMAT(puo.fechasistema , '%d/%m/%Y %H:%i:%s') as fecha_crearcion, pug.estado 
+  SELECT puo.id as idDireccion,puo.nombre as direccion,pug.id as idGerencia,pug.nombre as gerencia,DATE_FORMAT(puo.fechasistema , '%d/%m/%Y %H:%i:%s') as fecha_crearcion, pug.estado 
   FROM proyecto_unidad_organizativa puo 
   JOIN proyecto_unidad_gerencia pug ON pug.id = puo.gerencia_id
   `;
 
-  private readonly SQL_REGISTRAR_UNIDAD_ORGANIZATIVA = "INSERT INTO proyecto_unidad_organizativa (unidad_organizativa_id_erp,nombre) VALUES (?,?);";
+  private readonly SQL_REGISTRAR_UNIDAD_ORGANIZATIVA = "INSERT INTO proyecto_unidad_organizativa (unidad_organizativa_id_erp,nombre,gerencia_id) VALUES (?,?,?);";
 
 
-  private readonly SQL_ACTUALIZAR_UNIDAD_ORGANIZATIVA = `UPDATE proyecto_unidad_organizativa  SET unidad_organizativa_id_erp = ?, nombre = ? WHERE id = ?; 
+  private readonly SQL_ACTUALIZAR_UNIDAD_ORGANIZATIVA = `UPDATE proyecto_unidad_organizativa SET unidad_organizativa_id_erp = ?, nombre = ?, gerencia_id=? WHERE id = ?; 
   `;
   private readonly SQL_ACTUALIZAR_ESTADO_DIRECCION = `UPDATE proyecto_unidad_organizativa  SET estado = ? WHERE id = ?; 
   `;
@@ -43,12 +43,12 @@ export class CrudDireccionService {
 
   async registrarDireccion(direccionDto: DireccionDto) {
     try {
-      const { idDireccionErp, nombre } = direccionDto
+      const { idDireccionErp, nombre, idGerencia } = direccionDto
 
       this.conexion = await this.dbConexionServicio.connectToDatabase();
       this.conexion = this.dbConexionServicio.getConnection();
 
-      await this.conexion.query(this.SQL_REGISTRAR_UNIDAD_ORGANIZATIVA, [idDireccionErp, nombre]);
+      await this.conexion.query(this.SQL_REGISTRAR_UNIDAD_ORGANIZATIVA, [idDireccionErp, nombre, idGerencia]);
 
     } catch (error) {
       console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });

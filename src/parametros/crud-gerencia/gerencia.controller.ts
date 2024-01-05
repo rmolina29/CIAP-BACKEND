@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Put,UseGuards, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, UseGuards, Res, HttpStatus } from '@nestjs/common';
 import { MensajeAlerta, Registro, RespuestaPeticion } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { ApiBody, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GuardParametros } from '../guards/validacionParametros.guard';
 import { CrudGerenciaService } from './crud-gerencia.service';
-import { Estado, Gerencia } from './dto/create-crud-gerencia.dto';
+import { EstadoGerencia, Gerencia } from './dto/create-crud-gerencia.dto';
 
 @Controller('gerencia')
 export class GerenciaContoller {
@@ -56,9 +56,9 @@ export class GerenciaContoller {
 
     @ApiTags('Gerencia')
     @Put('/actualizar-estado')
-    @ApiBody({ type: Estado, description: 'Se hace la actualizacion del estado de la gerencia a activo o inactivo.' })
+    @ApiBody({ type: EstadoGerencia, description: 'Se hace la actualizacion del estado de la gerencia a activo o inactivo.' })
     @ApiOkResponse({ status: 200, description: 'Estado de la gerencia actualizada.' })
-    actualizarEstadoGerencia(@Body() estadoGerencia: Estado, @Res() res: Response) {
+    actualizarEstadoGerencia(@Body() estadoGerencia: EstadoGerencia, @Res() res: Response) {
         try {
             this.gerenciaServicio.actualizarEstado(estadoGerencia);
             res.status(HttpStatus.OK).json({ mensaje: 'Se ha actualizado el estado correctamente', status: RespuestaPeticion.OK })

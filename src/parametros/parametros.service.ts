@@ -22,13 +22,16 @@ export class ParametrosService {
 
       const idParametro = parametro.id ?? 0;
 
-      let parametrizacionValidacion = this.obtenerSQL(parametro);
+      let parametrizacion = this.obtenerSQL(parametro);
 
-      let parametros = parametro.nombre || parametro.identificacion || parametro.descripcion;
+      let parametros: object;
 
-      const existeParametro: [] = await this.conexion.query(parametrizacionValidacion.sql, [parametros, idParametro]);
+      if (parametro.hasOwnProperty(parametrizacion.erp)) {
+        parametros = [parametro.nombre || parametro.descripcion, parametro[parametrizacion.erp], idParametro];
+      }
 
-      return { validacion: existeParametro.length > 0, mensaje: parametrizacionValidacion.mensaje };
+      const existeParametro: [] = await this.conexion.query(parametrizacion.sql, parametros);
+      return { validacion: existeParametro.length > 0, mensaje: parametrizacion.mensaje };
 
     } catch (error) {
       console.error({ mensaje: MensajeAlerta.ERROR, err: error.message, status: HttpStatus.INTERNAL_SERVER_ERROR });
@@ -45,30 +48,38 @@ export class ParametrosService {
   obtenerSQL(objetoParametro: Gerencia & DireccionDto & Ceco & Cliente & EstadosDto) {
     let sql: string;
     let mensaje: string;
+    let erp: string;
+
     switch (true) {
+      // validacion gerencia
       case objetoParametro.hasOwnProperty('idGerenciaErp'):
-        sql = 'SELECT * FROM proyecto_unidad_gerencia WHERE nombre = ? AND id != ?';
-        mensaje = `La unidad de gerencia ${objetoParametro.nombre} ya se encuentra registrado, Intentar con uno diferente.`;
+        sql = '  SELECT * FROM proyecto_unidad_gerencia WHERE (nombre = ? OR unidad_gerencia_id_erp = ?)  AND id != ?;';
+        mensaje = `La unidad de gerencia "${objetoParametro.nombre}" y/o  el erp "${objetoParametro.idGerenciaErp}" ya se encuentra registrado,Intentar con uno diferente.`;
+        erp = 'idGerenciaErp';
         break;
       case objetoParametro.hasOwnProperty('idDireccionErp'):
-        sql = 'SELECT puo.id, puo.nombre as direccion FROM proyecto_unidad_organizativa puo WHERE puo.nombre = ? AND puo.id != ?';
-        mensaje = `La unidad de organizativa ${objetoParametro.nombre} ya se encuentra registrado, Intentar con uno diferente.`;
+        sql = '  SELECT puo.id, puo.nombre as direccion FROM proyecto_unidad_organizativa puo WHERE (puo.nombre = ? OR puo.unidad_organizativa_id_erp = ?) AND puo.id != ?';
+        mensaje = `La unidad de organizativa ${objetoParametro.nombre} y/o ${objetoParametro.idDireccionErp} ya se encuentra registrado, Intentar con uno diferente.`;
+        erp = 'idDireccionErp';
         break;
       case objetoParametro.hasOwnProperty('idCecoErp'):
-        sql = 'SELECT pc.nombre  FROM proyecto_ceco pc WHERE pc.nombre = ? AND pc.id != ?;';
-        mensaje = `El ceco ${objetoParametro.nombre} ya se encuentra registrado, Intentar con uno diferente.`;
+        sql = 'SELECT pc.nombre  FROM proyecto_ceco pc WHERE (pc.nombre = ? OR pc.ceco_id_erp = ?) AND pc.id != ?;';
+        mensaje = `El ceco ${objetoParametro.nombre} y/o ${objetoParametro.idCecoErp} ya se encuentra registrado, Intentar con uno diferente.`;
+        erp = 'idCecoErp';
         break;
       case objetoParametro.hasOwnProperty('identificacion'):
-        sql = 'SELECT * FROM proyecto_cliente pc WHERE pc.identificacion = ? AND pc.id != ?;';
-        mensaje = `El NIT: ${objetoParametro.identificacion} ya se encuentra registrada, Intentar con una diferente.`;
+        sql = 'SELECT * FROM proyecto_cliente pc WHERE (pc.identificacion = ? OR pc.cliente_id_erp = ?) AND pc.id != ?;';
+        mensaje = `El NIT: ${objetoParametro.identificacion} y/o ${objetoParametro.clienteIdErp} ya se encuentra registrada, Intentar con una diferente.`;
+        erp = 'clienteIdErp';
         break;
       case objetoParametro.hasOwnProperty('descripcion'):
-        sql = ' SELECT * FROM proyecto_estado pe WHERE pe.descripcion = ? AND pe.id != ?;';
+        sql = ' SELECT * FROM proyecto_estado pe WHERE (pe.descripcion = ? OR pe.estado_id_erp = ?) AND pe.id != ?;';
         mensaje = `El tipo de estado: ${objetoParametro.descripcion} ya se encuentra registrado, Intentar con una diferente.`;
+        erp = 'estadoIdErp';
         break;
     }
 
-    return { sql, mensaje };
+    return { sql, mensaje, erp };
   }
 
 

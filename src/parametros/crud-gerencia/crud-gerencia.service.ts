@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Gerencia, Estado } from './dto/create-crud-gerencia.dto';
+import { Gerencia, EstadoGerencia } from './dto/create-crud-gerencia.dto';
 import { DatabaseService } from 'src/database/database.service';
 import { MensajeAlerta } from 'src/mensajes_usuario/mensajes-usuario.enum';
 import { Connection } from 'mariadb';
@@ -113,7 +113,7 @@ export class CrudGerenciaService {
     }
   }
 
-  async actualizarEstado(estado: Estado) {
+  async actualizarEstado(estado: EstadoGerencia) {
     try {
       const { idGerencia, estadoGerencia } = estado;
 

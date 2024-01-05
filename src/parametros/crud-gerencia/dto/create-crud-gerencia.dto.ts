@@ -25,7 +25,7 @@ export class Gerencia {
 }
 
 
-export class Estado {
+export class EstadoGerencia {
     @ApiProperty({ example: '1', description: 'Hace referencia al id que representa la gerencia.', required: true })
     @validacionTipadoNumVacios('el id debe ser numerico', 'el id no pueden ir vacio.')
     idGerencia: number;
