@@ -8,7 +8,7 @@ import { Connection } from 'mariadb';
 export class CrudGerenciaService {
 
   private readonly SQL_OBTENER_GERENCIA = `
-  SELECT  pug.id as idGerencia,pug.unidad_gerencia_id_erp as gerencia, pug.nombre as gerencia, ua.nombre_usuario as responsable,ua.id as id_responsable, DATE_FORMAT(pug.fechasistema, '%d/%m/%Y %H:%i') as fecha_creacion, pug.estado
+  SELECT  pug.id as idGerencia,pug.unidad_gerencia_id_erp as ceco, pug.nombre as gerencia, ua.nombre_usuario as responsable,ua.id as id_responsable, DATE_FORMAT(pug.fechasistema, '%d/%m/%Y %H:%i') as fecha_creacion, pug.estado
   FROM proyecto_unidad_gerencia pug 
    JOIN usuario_auth ua ON pug.responsable_id = ua.id
   `;
