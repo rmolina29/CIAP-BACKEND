@@ -30,9 +30,11 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('doct', app, document);
+  // Configuración de rutas
+  app.setGlobalPrefix('nts'); // Esto establece un prefijo global para todas las rutas
 
-  await app.listen(3000);
+  await app.listen(3000);  
 
   app.use(express.json());
 }
